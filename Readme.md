@@ -1,6 +1,8 @@
 # 项目简介
 
-为了方便大家将 (Pandora-Next)[https://github.com/pandora-next/deploy] 项目与各种其他项目结合完成了本项目。
+为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
+
+如果本项目对你有帮助的话，请点个小星星吧~
 
 # Docker-Compose 部署
 
@@ -8,7 +10,7 @@
 
 # 环境变量说明：
 
-- UPLOAD_BASE_URL 用于dalle模型生成图片的时候展示所用，需要设置为使用如chatgpt-next-web的用户可以访问到的 Uploader  容器地址，如：http://127.0.0.1:50012
+- UPLOAD_BASE_URL 用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的 Uploader  容器地址，如：http://127.0.0.1:50012
 
 # 示例
 
