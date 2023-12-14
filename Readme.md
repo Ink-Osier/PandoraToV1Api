@@ -2,7 +2,17 @@
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
+本项目支持将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，暂时只支持流式响应，暂未支持非流式响应。
+
 如果本项目对你有帮助的话，请点个小星星吧~
+
+# 支持的模型
+
+目前支持的模型包括：
+
+1. gpt-4-classic：纯文字生成的 GPT-4，未加入任何插件，对应的是官方的 GPT-4-Classic
+
+2. gpt-4-s：支持代码解释器、bing联网、dalle绘图的 GPT-4，对应的是官方的默认 GPT-4
 
 # Docker-Compose 部署
 
