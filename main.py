@@ -7,7 +7,14 @@ import time
 from datetime import datetime
 import os
 
-
+def generate_unique_id(prefix):
+    # 生成一个随机的 UUID
+    random_uuid = uuid.uuid4()
+    # 将 UUID 转换为字符串，并移除其中的短横线
+    random_uuid_str = str(random_uuid).replace('-', '')
+    # 结合前缀和处理过的 UUID 生成最终的唯一 ID
+    unique_id = f"{prefix}-{random_uuid_str}"
+    return unique_id
 
 
 # 创建 Flask 应用
@@ -207,6 +214,12 @@ def save_image(image_data, path='./images'):
     return os.path.join(path, filename)
 
 
+def unicode_to_chinese(unicode_string):
+    # 首先将字符串转换为标准的 JSON 格式字符串
+    json_formatted_str = json.dumps(unicode_string)
+    # 然后将 JSON 格式的字符串解析回正常的字符串
+    return json.loads(json_formatted_str)
+
 import re
 
 # 辅助函数：检查是否为合法的引用格式或正在构建中的引用格式
@@ -299,6 +312,10 @@ def chat_completions():
     else:
         # 处理流式响应
         def generate():
+            chat_message_id = generate_unique_id("chatcmpl")
+            # 当前时间戳
+            timestamp = int(time.time())
+
             buffer = ""
             last_full_text = ""  # 用于存储之前所有出现过的 parts 组成的完整文本
             last_full_code = ""
@@ -317,11 +334,13 @@ def chat_completions():
                         try:
                             data_json = json.loads(complete_data.replace('data: ', ''))
                             message = data_json.get("message", {})
+                            message_status = message.get("status")
                             content = message.get("content", {})
                             role = message.get("author", {}).get("role")
                             content_type = content.get("content_type")
                             print(f"content_type: {content_type}")
                             print(f"last_content_type: {last_content_type}")
+
                             metadata = {}
                             citations = []
                             try:
@@ -330,7 +349,7 @@ def chat_completions():
                             except:
                                 pass
                             name = message.get("author", {}).get("name")
-                            if role == "user":
+                            if role == "user" or message_status == "finished_successfully" or role == "system":
                                 # 如果是用户发来的消息，直接舍弃
                                 continue
                             try:
@@ -381,6 +400,7 @@ def chat_completions():
                                         
 
                             if is_img_message == False:
+                                # print(f"data_json: {data_json}")
                                 if content_type == "multimodal_text" and last_content_type == "code":
                                     new_text = "\n```\n" + content.get("text", "")
                                 elif role == "tool" and name == "dalle.text2im":
@@ -490,10 +510,11 @@ def chat_completions():
                             if content_type != None:
                                 last_content_type = content_type if role != "user" else last_content_type
 
+                           
                             new_data = {
-                                "id": message.get("id"),
+                                "id": chat_message_id,
                                 "object": "chat.completion.chunk",
-                                "created": message.get("create_time"),
+                                "created": timestamp,
                                 "model": message.get("metadata", {}).get("model_slug"),
                                 "choices": [
                                     {
@@ -505,21 +526,22 @@ def chat_completions():
                                     }
                                 ]
                             }
+                            # print(f"Role: {role}")
                             print(f"[{datetime.now()}] 发送消息: {new_text}")
-                            tmp = 'data: ' + json.dumps(new_data) + '\n\n'
+                            tmp = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
                             # print(f"[{datetime.now()}] 发送数据: {tmp}")
-                            yield 'data: ' + json.dumps(new_data) + '\n\n'
+                            yield 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
                         except json.JSONDecodeError:
-                            print("JSON 解析错误")
+                            # print("JSON 解析错误")
                             print(f"[{datetime.now()}] 发送数据: {complete_data}")
                             if complete_data == 'data: [DONE]\n\n':
                                 print(f"[{datetime.now()}] 会话结束")
                                 yield complete_data
             if citation_buffer != "":
                 new_data = {
-                    "id": message.get("id"),
+                    "id": chat_message_id,
                     "object": "chat.completion.chunk",
-                    "created": message.get("create_time"),
+                    "created": timestamp,
                     "model": message.get("metadata", {}).get("model_slug"),
                     "choices": [
                         {
@@ -541,9 +563,9 @@ def chat_completions():
                     buffer_json = json.loads(buffer)
                     error_message = buffer_json.get("detail", {}).get("message", "未知错误")
                     error_data = {
-                                "id": str(uuid.uuid4()),
+                                "id": chat_message_id,
                                 "object": "chat.completion.chunk",
-                                "created": datetime.now().isoformat(),
+                                "created": timestamp,
                                 "model": "error",
                                 "choices": [
                                     {
@@ -559,7 +581,7 @@ def chat_completions():
                     print(f"[{datetime.now()}] 发送最后的数据: {tmp}")
                     yield 'data: ' + json.dumps(error_data) + '\n\n'
                 except json.JSONDecodeError:
-                    print("JSON 解析错误")
+                    # print("JSON 解析错误")
                     print(f"[{datetime.now()}] 发送最后的数据: {buffer}")
                     yield buffer
 

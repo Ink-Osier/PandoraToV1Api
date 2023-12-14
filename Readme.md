@@ -6,6 +6,12 @@
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
+# 更新日志
+
+### 0.0.6
+
+- 修复接入ChatGPT-Next-Web后回复会携带上次的回复的Bug
+
 # 注意
 
 本项目的运行需要 Pandora-Next 开启 `auto_conv_arkose:true`
