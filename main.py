@@ -198,20 +198,27 @@ def delete_conversation(conversation_id, api_key):
 
 from PIL import Image
 import io
-def save_image(image_data, path='./images'):
-    if not os.path.exists(path):
-        os.makedirs(path)
-    current_time = datetime.now().strftime('%Y%m%d%H%M%S')
-    filename = f'image_{current_time}.png'
-    print(f"filename: {filename}")
-    # 使用 PIL 打开图像数据
-    with Image.open(io.BytesIO(image_data)) as image:
-        # 保存为 PNG 格式
-        image.save(os.path.join(path, filename), 'PNG')
+def save_image(image_data, path='images'):
+    try:
+        # print(f"image_data: {image_data}")
+        if not os.path.exists(path):
+            os.makedirs(path)
+        current_time = datetime.now().strftime('%Y%m%d%H%M%S')
+        filename = f'image_{current_time}.png'
+        full_path = os.path.join(path, filename)
+        print(f"完整的文件路径: {full_path}")  # 打印完整路径
+        # print(f"filename: {filename}")
+        # 使用 PIL 打开图像数据
+        with Image.open(io.BytesIO(image_data)) as image:
+            # 保存为 PNG 格式
+            image.save(os.path.join(path, filename), 'PNG')
 
-    print(f"保存图片成功: {filename}")
+        print(f"保存图片成功: {filename}")
 
-    return os.path.join(path, filename)
+        return os.path.join(path, filename)
+    except Exception as e:
+        print(f"保存图片时出现异常: {e}")
+
 
 
 def unicode_to_chinese(unicode_string):
@@ -327,12 +334,25 @@ def chat_completions():
             for chunk in upstream_response.iter_content(chunk_size=1024):
                 if chunk:
                     buffer += chunk.decode('utf-8')
+                    # 检查是否存在 "event: ping"，如果存在，则只保留 "data:" 后面的内容
+                    if "event: ping" in buffer:
+                        if "data:" in buffer:
+                            buffer = buffer.split("data:", 1)[1]
+                            buffer = "data:" + buffer
+                    # 使用正则表达式移除特定格式的字符串
+                    # print("应用正则表达式之前的 buffer:", buffer.replace('\n', '\\n'))
+                    buffer = re.sub(r'data: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}(\r\n|\r|\n){2}', '', buffer)
+                    # print("应用正则表达式之后的 buffer:", buffer.replace('\n', '\\n'))
+
+
+
                     while 'data:' in buffer and '\n\n' in buffer:
                         end_index = buffer.index('\n\n') + 2
                         complete_data, buffer = buffer[:end_index], buffer[end_index:]
                         # 解析 data 块
                         try:
                             data_json = json.loads(complete_data.replace('data: ', ''))
+                            # print(f"data_json: {data_json}")
                             message = data_json.get("message", {})
                             message_status = message.get("status")
                             content = message.get("content", {})
@@ -349,7 +369,7 @@ def chat_completions():
                             except:
                                 pass
                             name = message.get("author", {}).get("name")
-                            if role == "user" or message_status == "finished_successfully" or role == "system":
+                            if (role == "user" or message_status == "finished_successfully" or role == "system") and role != "tool":
                                 # 如果是用户发来的消息，直接舍弃
                                 continue
                             try:
@@ -363,8 +383,10 @@ def chat_completions():
                             parts = content.get("parts", [])
                             for part in parts:
                                 try:
+                                    # print(f"part: {part}")
+                                    # print(f"part type: {part.get('content_type')}")
                                     if part.get('content_type') == 'image_asset_pointer':
-                                        print(f"content_type: {content_type}")
+                                        print(f"find img message~")
                                         is_img_message = True
                                         asset_pointer = part.get('asset_pointer').replace('file-service://', '')
                                         print(f"asset_pointer: {asset_pointer}")
