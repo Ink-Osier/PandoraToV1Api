@@ -13,7 +13,7 @@ ENV PYTHONUNBUFFERED=1
 RUN chmod +x /app/start.sh
 
 # 安装任何所需的依赖项
-RUN pip install --no-cache-dir flask gunicorn requests Pillow
+RUN pip install --no-cache-dir flask gunicorn requests Pillow flask-cors
 
 # 在容器启动时运行 Flask 应用
 CMD ["/app/start.sh"]

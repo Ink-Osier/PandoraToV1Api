@@ -2,7 +2,8 @@ version: '3'
 
 services:
   backend-to-api:
-    image: wizerd/pandora-to-api:0.0.1
+    image: wizerd/pandora-to-api:0.0.4
+    restart: always
     ports:
       - "50011:33333"
     environment:
@@ -10,13 +11,14 @@ services:
       - PROXY_API_PREFIX=<Pandora-Next的PROXY_API_PREFIX>
       - UPLOAD_BASE_URL=<Uploader 容器可以访问到的地址，如：http://127.0.0.1:50012>
     volumes:
-      - .:/app
+      - ./log:/app/log
 
   uploader:
-    image: wizerd/pandora-to-api:0.0.1
+    image: wizerd/pandora-to-api:0.0.4
+    restart: always
     entrypoint: ["python3", "/app/upload.py"]
     volumes:
-      - .:/app
+      - ./images:/app/images
     ports:
       - "50012:23333"
     
