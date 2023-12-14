@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  backend-to-api:
+    build: .
+    ports:
+      - "50011:33333"
+    environment:
+      - BASE_URL=<Pandora-Next的部署地址，如：https://pandoranext.com>
+      - PROXY_API_PREFIX=<Pandora-Next的PROXY_API_PREFIX>
+      - UPLOAD_BASE_URL=<Uploader 容器可以访问到的地址，如：http://127.0.0.1:50012>
+    volumes:
+      - .:/app
+
+  uploader:
+    build: .
+    entrypoint: ["python3", "/app/upload.py"]
+    volumes:
+      - .:/app
+    ports:
+      - "50012:23333"
+    
