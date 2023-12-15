@@ -2,7 +2,7 @@ version: '3'
 
 services:
   backend-to-api:
-    image: wizerd/pandora-to-api:0.0.7
+    image: wizerd/pandora-to-api:0.0.8
     restart: always
     ports:
       - "50011:33333"
@@ -16,7 +16,7 @@ services:
 
 
   uploader:
-    image: wizerd/pandora-to-api:0.0.7
+    image: wizerd/pandora-to-api:0.0.8
     restart: always
     entrypoint: ["python3", "/app/upload.py"]
     volumes:

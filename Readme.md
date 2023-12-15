@@ -8,6 +8,10 @@
 
 # 更新日志
 
+### 0.0.8
+
+- 增加了对 GPT-4-Mobile 模型的支持，模型名为 `gpt-4-mobile`
+
 ### 0.0.7
 
 - 一定程度上修复图片无法正常生成的问题
@@ -51,7 +55,7 @@ services:
     environment:
       - OPENAI_API_KEY=<Pandora-Next 的 fk>
       - BASE_URL=<backend-to-api容器地址>
-      - CUSTOM_MODELS=+gpt-4-s,+gpt-4-classic
+      - CUSTOM_MODELS=+gpt-4-s,+gpt-4-classic,+gpt-4-mobile
 
 ```
 
@@ -67,4 +71,8 @@ services:
 
 ### 绘图
 
-![api-3](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/58d140fb-56b2-445c-946d-2d5c5c6a2ec0)
+![api-3](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/8eea9436-12ee-46b1-86c1-67e7e97da83a)
+
+### GPT-4-Mobile
+
+![api-4](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/537422fc-ef7a-4896-b2f9-750f7fe1334d)

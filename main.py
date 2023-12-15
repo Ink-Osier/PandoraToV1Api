@@ -26,7 +26,16 @@ BASE_URL = os.getenv('BASE_URL', '')
 PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 
+VERSION = '0.0.8'
+UPDATE_INFO = '增加了对 GPT-4 Mobile 的支持'
+
 with app.app_context():
+    # 输出版本信息
+    print(f"==========================================")
+    print(f"Version: {VERSION}")
+    print(f"Update Info: {UPDATE_INFO}")
+
+
     if not BASE_URL:
         raise Exception('BASE_URL is not set')
     else:
@@ -35,6 +44,9 @@ with app.app_context():
         raise Exception('PROXY_API_PREFIX is not set')
     else:
         print(f"PROXY_API_PREFIX: {PROXY_API_PREFIX}")
+    
+    print(f"==========================================")
+
 
 # 定义获取 token 的函数
 def get_token():
@@ -47,6 +59,7 @@ def get_token():
         return None
 
 import os
+accessable_model_list = ['gpt-4-classic', 'gpt-4-s', 'gpt-4-mobile']
 
 # 定义发送请求的函数
 def send_text_prompt_and_get_response(messages, api_key, stream, model):
@@ -177,6 +190,18 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
             "history_and_training_disabled": False,
             "conversation_mode":{"kind":"primary_assistant"},"force_paragen":False,"force_rate_limit":False
         }
+    elif model == 'gpt-4-mobile':
+        payload = {
+            # 构建 payload
+            "action": "next",
+            "messages": formatted_messages,
+            "parent_message_id": str(uuid.uuid4()),
+            "model":"gpt-4-mobile",
+            "timezone_offset_min": -480,
+            "suggestions":["Give me 3 ideas about how to plan good New Years resolutions. Give me some that are personal, family, and professionally-oriented.","Write a text asking a friend to be my plus-one at a wedding next month. I want to keep it super short and casual, and offer an out.","Design a database schema for an online merch store.","Compare Gen Z and Millennial marketing strategies for sunglasses."],
+            "history_and_training_disabled": False,
+            "conversation_mode":{"kind":"primary_assistant"},"force_paragen":False,"force_rate_limit":False
+        }
     response = requests.post(url, headers=headers, json=payload, stream=stream)
     # print(response)
     return response
@@ -293,7 +318,6 @@ def replace_complete_citation(text, citations):
 
     return replaced_text, remaining_text, is_potential_citation
 
-accessable_model_list = ['gpt-4-classic', 'gpt-4-s']
 # 定义 Flask 路由
 @app.route('/v1/chat/completions', methods=['POST'])
 def chat_completions():
