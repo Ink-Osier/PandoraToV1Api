@@ -2,7 +2,7 @@
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
-本项目支持将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，暂时只支持流式响应，暂未支持非流式响应。
+本项目支持将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应，Pandora-Next的对话额度比例消耗为：`1:14`。
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
