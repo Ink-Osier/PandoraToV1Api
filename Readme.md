@@ -8,6 +8,12 @@
 
 # 更新日志
 
+### 0.1.0
+
+- 重磅更新
+
+- 已支持访问大部分的GPTS
+
 ### 0.0.11
 
 - 修复一些偶现的bug
@@ -43,11 +49,11 @@
 
 目前支持的模型包括：
 
-1. gpt-4-classic：纯文字生成的 GPT-4，未加入任何插件，对应的是官方的 GPT-4-Classic
+1. gpt-4-s：支持代码解释器、bing联网、dalle绘图的 GPT-4，对应的是官方的默认 GPT-4（绘图的响应有时候有些不稳定）
 
-2. gpt-4-s：支持代码解释器、bing联网、dalle绘图的 GPT-4，对应的是官方的默认 GPT-4（绘图的响应有时候有些不稳定）
+2. gpt-4-mobile：支持代码解释器、bing联网、dalle绘图的 GPT-4，对应的是官方的手机版 GPT-4，截止至2023年12月15日，本模型使用量不计入 GPT-4 用量（即不受每 3 小时 40 次的限制）
 
-3. gpt-4-mobile：支持代码解释器、bing联网、dalle绘图的 GPT-4，对应的是官方的手机版 GPT-4，截止至2023年12月15日，本模型使用量不计入 GPT-4 用量（即不受每 3 小时 40 次的限制）
+3. 几乎所有的 GPTS（配置方式见下文）
 
 # Docker-Compose 部署
 
@@ -55,7 +61,30 @@
 
 # 环境变量说明：
 
-- UPLOAD_BASE_URL 用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的 Uploader  容器地址，如：http://127.0.0.1:50012
+- UPLOAD_BASE_URL：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的 Uploader  容器地址，如：http://127.0.0.1:50012
+
+- KEY_FOR_GPTS_INFO：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key。
+
+# GPTS配置说明
+
+如果需要使用 GPTS，需要修改 `gpts.json` 文件，其中每个对象的key即为调用对应 GPTS 的时候使用的模型名称，而 `id` 则为对应的模型id，该 `id` 对应每个 GPTS 的链接的后缀。配置多个GPTS的时候用逗号隔开。
+
+例如：PandoraNext的官方 GPTS 的链接为：`https://chat.oaifree.com/g/g-CFsXuTRfy-pandoranextzhu-shou`，则该模型的 `id` 的值应为 `g-CFsXuTRfy-pandoranextzhu-shou`，而模型名可以自定义。
+
+示例：
+
+```json
+{
+    "gpt-4-classic": {
+        "id":"g-YyyyMT9XH-chatgpt-classic"
+    },
+    "pandoraNext":{
+        "id":"g-CFsXuTRfy-pandoranextzhu-shou"
+    }
+}
+```
+
+注意：使用该配置的时候需要保证正确填写 `docker-compose.yml` 的环境变量 `KEY_FOR_GPTS_INFO`，同时该变量设置的 `key` 允许访问所有配置的 GPTS。
 
 # 示例
 
@@ -71,7 +100,7 @@ services:
     environment:
       - OPENAI_API_KEY=<Pandora-Next 的 fk>
       - BASE_URL=<backend-to-api容器地址>
-      - CUSTOM_MODELS=+gpt-4-s,+gpt-4-classic,+gpt-4-mobile
+      - CUSTOM_MODELS=+gpt-4-s,+gpt-4-mobile,+<gpts.json 中的模型名>
 
 ```
 
@@ -92,3 +121,7 @@ services:
 ### GPT-4-Mobile
 
 ![api-4](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/2eb4fd4f-7c66-4a1f-a54a-3c280a36e509)
+
+### GPTS
+
+![api-5](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/299df56a-d245-4920-8892-94e1a9cc644a)
