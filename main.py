@@ -26,8 +26,8 @@ BASE_URL = os.getenv('BASE_URL', '')
 PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 
-VERSION = '0.0.10'
-UPDATE_INFO = '支持非流式响应'
+VERSION = '0.0.11'
+UPDATE_INFO = '修复一些偶现的bug'
 
 with app.app_context():
     # 输出版本信息
@@ -379,6 +379,10 @@ def chat_completions():
                         data_json = json.loads(complete_data.replace('data: ', ''))
                         # print(f"data_json: {data_json}")
                         message = data_json.get("message", {})
+
+                        if message == {} or message == None:
+                            print(f"message 为空: data_json: {data_json}")
+
                         message_status = message.get("status")
                         content = message.get("content", {})
                         role = message.get("author", {}).get("role")
@@ -633,7 +637,7 @@ def chat_completions():
                 # 累积 new_text
                 all_new_text += ''.join("```\n" + error_message + "\n```")
                 yield 'data: ' + json.dumps(error_data) + '\n\n'
-            except json.JSONDecodeError:
+            except:
                 # print("JSON 解析错误")
                 print(f"[{datetime.now()}] 发送最后的数据: {buffer}")
                 yield buffer
