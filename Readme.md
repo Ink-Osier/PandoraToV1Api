@@ -75,4 +75,4 @@ services:
 
 ### GPT-4-Mobile
 
-![api-4](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/537422fc-ef7a-4896-b2f9-750f7fe1334d)
+![api-4](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/2eb4fd4f-7c66-4a1f-a54a-3c280a36e509)
