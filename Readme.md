@@ -8,6 +8,10 @@
 
 # 更新日志
 
+### 0.0.9
+
+- 修复在 ChatGPT-Next-Web 网页端修改请求接口后出现 `Failed to fetch` 报错的问题
+
 ### 0.0.8
 
 - 增加了对 GPT-4-Mobile 模型的支持，模型名为 `gpt-4-mobile`

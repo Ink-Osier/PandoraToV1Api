@@ -26,8 +26,8 @@ BASE_URL = os.getenv('BASE_URL', '')
 PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 
-VERSION = '0.0.8'
-UPDATE_INFO = '增加了对 GPT-4 Mobile 的支持'
+VERSION = '0.0.9'
+UPDATE_INFO = '修复在 ChatGPT-Next-Web 网页端修改请求接口后出现 `Failed to fetch` 报错的问题'
 
 with app.app_context():
     # 输出版本信息
@@ -636,6 +636,29 @@ def chat_completions():
                 
         return Response(generate(), mimetype='text/event-stream')
 
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+
+# 特殊的 OPTIONS 请求处理器
+@app.route('/v1/chat/completions', methods=['OPTIONS'])
+def options_handler():
+    print(f"[{datetime.now()}] Options Request")
+    return Response(status=200)
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    print(f"[{datetime.now()}] 未知请求: {path}")
+    print(f"[{datetime.now()}] 请求方法: {request.method}")
+    print(f"[{datetime.now()}] 请求头: {request.headers}")
+    print(f"[{datetime.now()}] 请求体: {request.data}")
+
+    return jsonify({"message": "Unknown"}), 200
 
 # 运行 Flask 应用
 if __name__ == '__main__':
