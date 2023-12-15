@@ -143,7 +143,7 @@ with app.app_context():
 
     # print(f"GPTs Payload 生成测试")
 
-    print(f"gpt-4-classic: {generate_gpts_payload('gpt-4-classic', [])}")
+    # print(f"gpt-4-classic: {generate_gpts_payload('gpt-4-classic', [])}")
 
 
 # 定义获取 token 的函数
