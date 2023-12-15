@@ -14,6 +14,8 @@
 
 - 已支持访问大部分的GPTS
 
+- 注意：本次更新需要更新 `docker-compose.yml` 文件以及 `gpts.json` 文件
+
 ### 0.0.11
 
 - 修复一些偶现的bug
