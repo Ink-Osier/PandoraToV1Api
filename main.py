@@ -74,7 +74,7 @@ def add_config_to_global_list(base_url, proxy_api_prefix, gpts_data):
                 'config': gizmo_info
             })
 
-def generate_gpts_payload(model):
+def generate_gpts_payload(model, messages):
     model_config = find_model_config(model)
     if model_config:
         gizmo_info = model_config['config']
@@ -82,7 +82,7 @@ def generate_gpts_payload(model):
         
         payload = {
             "action": "next",
-            "messages": [],
+            "messages": messages,
             "parent_message_id": str(uuid.uuid4()),
             "model": "gpt-4-gizmo",
             "timezone_offset_min": -480,
@@ -109,8 +109,8 @@ PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 
-VERSION = '0.1.1'
-UPDATE_INFO = '支持gpt-3.5-turbo模型'
+VERSION = '0.1.2'
+UPDATE_INFO = '紧急修复：GPTS未携带发送消息的问题'
 
 with app.app_context():
     # 输出版本信息
@@ -143,7 +143,7 @@ with app.app_context():
 
     # print(f"GPTs Payload 生成测试")
 
-    # print(f"gpt-4-classic: {generate_gpts_payload('gpt-4-classic')}")
+    print(f"gpt-4-classic: {generate_gpts_payload('gpt-4-classic', [])}")
 
 
 # 定义获取 token 的函数
@@ -228,7 +228,7 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
             "force_rate_limit":False
         }
     else:
-        payload = generate_gpts_payload(model)
+        payload = generate_gpts_payload(model, formatted_messages)
         if not payload:
             raise Exception('model is not accessible')
     response = requests.post(url, headers=headers, json=payload, stream=True)
