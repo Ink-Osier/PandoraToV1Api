@@ -2,7 +2,7 @@
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
-本项目支持将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应，Pandora-Next的对话额度比例消耗为：`1:14`。
+本项目支持将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应。
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
@@ -55,7 +55,15 @@
 
 # 注意
 
-本项目的运行需要 Pandora-Next 开启 `auto_conv_arkose:true`
+> [!CAUTION]
+> 1. 本项目的运行需要 Pandora-Next 开启 `auto_conv_arkose:true`。
+>
+> 2. 本项目对话次数对Pandora-Next的对话额度消耗比例为：
+>     - `gpt-4-s`、`gpt-4-mobile`、`GPTS`：`1:14`；
+>     - `gpt-3.5-turbo`：`1:4`；
+>
+> 3. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到Pandora-Next的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
+>
 
 # 支持的模型
 
