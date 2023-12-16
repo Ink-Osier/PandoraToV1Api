@@ -1,4 +1,4 @@
-# 项目简介
+## 项目简介
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
@@ -6,7 +6,7 @@
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
-# 更新日志
+## 更新日志
 
 ### 0.1.2
 
@@ -53,7 +53,7 @@
 
 - 修复接入ChatGPT-Next-Web后回复会携带上次的回复的Bug
 
-# 注意
+## 注意
 
 > [!CAUTION]
 > 1. 本项目的运行需要 Pandora-Next 开启 `auto_conv_arkose:true`。
@@ -65,7 +65,7 @@
 > 3. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到Pandora-Next的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
 >
 
-# 支持的模型
+## 支持的模型
 
 目前支持的模型包括：
 
@@ -77,17 +77,17 @@
 
 4. gpt-3.5-turbo
 
-# Docker-Compose 部署
+## Docker-Compose 部署
 
 仓库内已包含相关文件和目录，拉到本地后修改 docker-compose.yml 文件里的环境变量后运行`docker-compose up -d`即可。
 
-# 环境变量说明：
+## 环境变量说明：
 
 - UPLOAD_BASE_URL：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的 Uploader  容器地址，如：http://127.0.0.1:50012
 
 - KEY_FOR_GPTS_INFO：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key。
 
-# GPTS配置说明
+## GPTS配置说明
 
 如果需要使用 GPTS，需要修改 `gpts.json` 文件，其中每个对象的key即为调用对应 GPTS 的时候使用的模型名称，而 `id` 则为对应的模型id，该 `id` 对应每个 GPTS 的链接的后缀。配置多个GPTS的时候用逗号隔开。
 
@@ -108,7 +108,7 @@
 
 注意：使用该配置的时候需要保证正确填写 `docker-compose.yml` 的环境变量 `KEY_FOR_GPTS_INFO`，同时该变量设置的 `key` 允许访问所有配置的 GPTS。
 
-# 示例
+## 示例
 
 以ChatGPT-Next-Web项目的docker-compose部署为例，这里提供一个简单的部署配置文件示例：
 
@@ -147,3 +147,7 @@ services:
 ### GPTS
 
 ![api-5](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/299df56a-d245-4920-8892-94e1a9cc644a)
+
+## Star 历史
+
+![Stargazers over time](https://api.star-history.com/svg?repos=Ink-Osier/PandoraToV1Api&type=Date)
