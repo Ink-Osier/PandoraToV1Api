@@ -56,7 +56,7 @@
 ## 注意
 
 > [!CAUTION]
-> 1. 本项目的运行需要 Pandora-Next 开启 `auto_conv_arkose:true`。
+> 1. 本项目的运行需要 Pandora-Next 开启 `auto_conv_arkose:true`，同时请尽量升级最新版本的 Pandora-Next，以确保支持此功能。
 >
 > 2. 本项目对话次数对Pandora-Next的对话额度消耗比例为：
 >     - `gpt-4-s`、`gpt-4-mobile`、`GPTS`：`1:14`；
