@@ -50,17 +50,7 @@ def fetch_gizmo_info(base_url, proxy_api_prefix, model_id):
     else:
         return None
 
-gpts_configurations = [
-    {
-        "name":"gpt-4-s"
-    },
-    {
-        "name":"gpt-4-mobile"
-    },
-    {
-        "name":"gpt-3.5-turbo"
-    }
-]
+# gpts_configurations = []
 
 # 将配置添加到全局列表
 def add_config_to_global_list(base_url, proxy_api_prefix, gpts_data):
@@ -113,10 +103,14 @@ PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 
-VERSION = '0.1.4'
-UPDATE_INFO = '合并了 Upload 容器和 Backend 容器'
+VERSION = '0.1.5'
+# VERSION = 'test'
+UPDATE_INFO = '支持自定义自带的三种模型的名称'
+# UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
+    global gpts_configurations  # 移到作用域的最开始
+
     # 输出版本信息
     print(f"==========================================")
     print(f"Version: {VERSION}")
@@ -134,6 +128,27 @@ with app.app_context():
     
     print(f"==========================================")
 
+    # 从环境变量中读取模型名称
+    GPT_4_S_New_Name = os.getenv('GPT_4_S_New_Name', 'gpt-4-s')
+    GPT_4_MOBILE_NEW_NAME = os.getenv('GPT_4_MOBILE_NEW_NAME', 'gpt-4-mobile')
+    GPT_3_5_NEW_NAME = os.getenv('GPT_3_5_NEW_NAME', 'gpt-3.5-turbo')
+
+    # 更新 gpts_configurations 列表
+    gpts_configurations = [
+        {
+            "name": GPT_4_S_New_Name,
+            "ori_name": "gpt-4-s"
+        },
+        {
+            "name": GPT_4_MOBILE_NEW_NAME,
+            "ori_name": "gpt-4-mobile"
+        },
+        {
+            "name": GPT_3_5_NEW_NAME,
+            "ori_name": "gpt-3.5-turbo"
+        }
+    ]
+
     print(f"GPTS 配置信息")
 
     # 加载配置并添加到全局列表
@@ -141,7 +156,13 @@ with app.app_context():
     add_config_to_global_list(BASE_URL, PROXY_API_PREFIX, gpts_data)
     # print("当前可用GPTS：" + get_accessible_model_list())
     # 输出当前可用 GPTS name
-    print(f"当前可用 GPTS 列表: {get_accessible_model_list()}")
+    # 获取当前可用的 GPTS 模型列表
+    accessible_model_list = get_accessible_model_list()
+    print(f"当前可用 GPTS 列表: {accessible_model_list}")
+
+    # 检查列表中是否有重复的模型名称
+    if len(accessible_model_list) != len(set(accessible_model_list)):
+        raise Exception("检测到重复的模型名称，请检查环境变量或配置文件。")
 
     print(f"==========================================")
 
@@ -185,59 +206,65 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
     payload = {}
 
     print(f"model: {model}")
-    if model == 'gpt-4-s':
-        payload = {
-            # 构建 payload
-            "action": "next",
-            "messages": formatted_messages,
-            "parent_message_id": str(uuid.uuid4()),
-            "model":"gpt-4",
-            "timezone_offset_min": -480,
-            "suggestions":[],
-            "history_and_training_disabled": False,
-            "conversation_mode":{"kind":"primary_assistant"},"force_paragen":False,"force_rate_limit":False
-        }
-    elif model == 'gpt-4-mobile':
-        payload = {
-            # 构建 payload
-            "action": "next",
-            "messages": formatted_messages,
-            "parent_message_id": str(uuid.uuid4()),
-            "model":"gpt-4-mobile",
-            "timezone_offset_min": -480,
-            "suggestions":["Give me 3 ideas about how to plan good New Years resolutions. Give me some that are personal, family, and professionally-oriented.","Write a text asking a friend to be my plus-one at a wedding next month. I want to keep it super short and casual, and offer an out.","Design a database schema for an online merch store.","Compare Gen Z and Millennial marketing strategies for sunglasses."],
-            "history_and_training_disabled": False,
-            "conversation_mode":{"kind":"primary_assistant"},"force_paragen":False,"force_rate_limit":False
-        }
-    elif model =='gpt-3.5-turbo':
-        payload = {
-            # 构建 payload
-            "action": "next",
-            "messages": formatted_messages,
-            "parent_message_id": str(uuid.uuid4()),
-            "model": "text-davinci-002-render-sha",
-            "timezone_offset_min": -480,
-            "suggestions": [
-                "What are 5 creative things I could do with my kids' art? I don't want to throw them away, but it's also so much clutter.",
-                "I want to cheer up my friend who's having a rough day. Can you suggest a couple short and sweet text messages to go with a kitten gif?",
-                "Come up with 5 concepts for a retro-style arcade game.",
-                "I have a photoshoot tomorrow. Can you recommend me some colors and outfit options that will look good on camera?"
-            ],
-            "history_and_training_disabled":False,
-            "arkose_token":None,
-            "conversation_mode": {
-                "kind": "primary_assistant"
-            },
-            "force_paragen":False,
-            "force_rate_limit":False
-        }
-    else:
-        payload = generate_gpts_payload(model, formatted_messages)
-        if not payload:
-            raise Exception('model is not accessible')
-    response = requests.post(url, headers=headers, json=payload, stream=True)
-    # print(response)
-    return response
+
+    # 查找模型配置
+    model_config = find_model_config(model)
+    if model_config:
+        # 检查是否有 ori_name
+        ori_model_name = model_config.get('ori_name', model)
+        if ori_model_name == 'gpt-4-s':
+            payload = {
+                # 构建 payload
+                "action": "next",
+                "messages": formatted_messages,
+                "parent_message_id": str(uuid.uuid4()),
+                "model":"gpt-4",
+                "timezone_offset_min": -480,
+                "suggestions":[],
+                "history_and_training_disabled": False,
+                "conversation_mode":{"kind":"primary_assistant"},"force_paragen":False,"force_rate_limit":False
+            }
+        elif ori_model_name == 'gpt-4-mobile':
+            payload = {
+                # 构建 payload
+                "action": "next",
+                "messages": formatted_messages,
+                "parent_message_id": str(uuid.uuid4()),
+                "model":"gpt-4-mobile",
+                "timezone_offset_min": -480,
+                "suggestions":["Give me 3 ideas about how to plan good New Years resolutions. Give me some that are personal, family, and professionally-oriented.","Write a text asking a friend to be my plus-one at a wedding next month. I want to keep it super short and casual, and offer an out.","Design a database schema for an online merch store.","Compare Gen Z and Millennial marketing strategies for sunglasses."],
+                "history_and_training_disabled": False,
+                "conversation_mode":{"kind":"primary_assistant"},"force_paragen":False,"force_rate_limit":False
+            }
+        elif ori_model_name =='gpt-3.5-turbo':
+            payload = {
+                # 构建 payload
+                "action": "next",
+                "messages": formatted_messages,
+                "parent_message_id": str(uuid.uuid4()),
+                "model": "text-davinci-002-render-sha",
+                "timezone_offset_min": -480,
+                "suggestions": [
+                    "What are 5 creative things I could do with my kids' art? I don't want to throw them away, but it's also so much clutter.",
+                    "I want to cheer up my friend who's having a rough day. Can you suggest a couple short and sweet text messages to go with a kitten gif?",
+                    "Come up with 5 concepts for a retro-style arcade game.",
+                    "I have a photoshoot tomorrow. Can you recommend me some colors and outfit options that will look good on camera?"
+                ],
+                "history_and_training_disabled":False,
+                "arkose_token":None,
+                "conversation_mode": {
+                    "kind": "primary_assistant"
+                },
+                "force_paragen":False,
+                "force_rate_limit":False
+            }
+        else:
+            payload = generate_gpts_payload(model, formatted_messages)
+            if not payload:
+                raise Exception('model is not accessible')
+        response = requests.post(url, headers=headers, json=payload, stream=True)
+        # print(response)
+        return response
 
 def delete_conversation(conversation_id, api_key):
     print(f"[{datetime.now()}] 准备删除的会话id： {conversation_id}")
