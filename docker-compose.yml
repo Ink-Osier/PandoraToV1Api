@@ -11,9 +11,9 @@ services:
       - PROXY_API_PREFIX=<Pandora-Next的PROXY_API_PREFIX>
       - UPLOAD_BASE_URL=<50011端口在公网可以访问到的地址，如：http://1.2.3.4:50011，如果使用了反代需填入反代后的域名如：https://pandora-backend-api.com>
       - KEY_FOR_GPTS_INFO=<一个仅用于获取GPTs信息的fk> # 如果不需要额外使用gpts，可以不填
-      - GPT_4_S_New_Name=gpt-4-s # gpt-4-s模型的自定义模型名称
-      - GPT_4_MOBILE_NEW_NAME=gpt-4-mobile # gpt-4-mobile模型的自定义模型名称
-      - GPT_3_5_NEW_NAME=gpt-3.5-turbo # gpt-3.5-turbo模型的自定义模型名称
+      - GPT_4_S_New_Name=gpt-4-s # gpt-4-s模型的自定义模型名称，支持同时设置多个，用英文逗号分隔
+      - GPT_4_MOBILE_NEW_NAME=gpt-4-mobile # gpt-4-mobile模型的自定义模型名称，支持同时设置多个，用英文逗号分隔
+      - GPT_3_5_NEW_NAME=gpt-3.5-turbo # gpt-3.5-turbo模型的自定义模型名称，支持同时设置多个，用英文逗号分隔
     volumes:
       - ./log:/app/log
       - ./images:/app/images

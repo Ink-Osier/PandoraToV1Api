@@ -103,9 +103,9 @@ PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 
-VERSION = '0.1.5'
+VERSION = '0.1.6'
 # VERSION = 'test'
-UPDATE_INFO = '支持自定义自带的三种模型的名称'
+UPDATE_INFO = '对于自带的三个模型，支持多个名字映射到同一个模型'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -128,26 +128,29 @@ with app.app_context():
     
     print(f"==========================================")
 
-    # 从环境变量中读取模型名称
-    GPT_4_S_New_Name = os.getenv('GPT_4_S_New_Name', 'gpt-4-s')
-    GPT_4_MOBILE_NEW_NAME = os.getenv('GPT_4_MOBILE_NEW_NAME', 'gpt-4-mobile')
-    GPT_3_5_NEW_NAME = os.getenv('GPT_3_5_NEW_NAME', 'gpt-3.5-turbo')
+    # 从环境变量中读取模型名称，支持用逗号分隔的多个名称
+    GPT_4_S_New_Names = os.getenv('GPT_4_S_New_Name', 'gpt-4-s').split(',')
+    GPT_4_MOBILE_NEW_NAMES = os.getenv('GPT_4_MOBILE_NEW_NAME', 'gpt-4-mobile').split(',')
+    GPT_3_5_NEW_NAMES = os.getenv('GPT_3_5_NEW_NAME', 'gpt-3.5-turbo').split(',')
 
-    # 更新 gpts_configurations 列表
-    gpts_configurations = [
-        {
-            "name": GPT_4_S_New_Name,
+    # 更新 gpts_configurations 列表，支持多个映射
+    gpts_configurations = []
+    for name in GPT_4_S_New_Names:
+        gpts_configurations.append({
+            "name": name.strip(),
             "ori_name": "gpt-4-s"
-        },
-        {
-            "name": GPT_4_MOBILE_NEW_NAME,
+        })
+    for name in GPT_4_MOBILE_NEW_NAMES:
+        gpts_configurations.append({
+            "name": name.strip(),
             "ori_name": "gpt-4-mobile"
-        },
-        {
-            "name": GPT_3_5_NEW_NAME,
+        })
+    for name in GPT_3_5_NEW_NAMES:
+        gpts_configurations.append({
+            "name": name.strip(),
             "ori_name": "gpt-3.5-turbo"
-        }
-    ]
+        })
+
 
     print(f"GPTS 配置信息")
 
