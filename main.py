@@ -212,6 +212,7 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
     if model_config:
         # 检查是否有 ori_name
         ori_model_name = model_config.get('ori_name', model)
+        print(f"实际模型名: {ori_model_name}")
         if ori_model_name == 'gpt-4-s':
             payload = {
                 # 构建 payload
