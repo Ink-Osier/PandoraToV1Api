@@ -9,19 +9,10 @@ services:
     environment:
       - BASE_URL=<Pandora-Next的部署地址，如：https://pandoranext.com>
       - PROXY_API_PREFIX=<Pandora-Next的PROXY_API_PREFIX>
-      - UPLOAD_BASE_URL=<Uploader 容器可以访问到的地址，如：http://127.0.0.1:50012>
+      - UPLOAD_BASE_URL=<50011端口在公网可以访问到的地址，如：http://1.2.3.4:50011，如果使用了反代需填入反代后的域名如：https://pandora-backend-api.com>
       - KEY_FOR_GPTS_INFO=<一个仅用于获取GPTs信息的fk> # 如果不需要额外使用gpts，可以不填
     volumes:
       - ./log:/app/log
       - ./images:/app/images
       - ./gpts.json:/app/gpts.json
-
-  uploader:
-    image: wizerd/pandora-to-api:latest
-    restart: always
-    entrypoint: ["python3", "/app/upload.py"]
-    volumes:
-      - ./images:/app/images
-    ports:
-      - "50012:23333"
     

@@ -1,11 +1,15 @@
 # 导入所需的库
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
+from flask_cors import CORS, cross_origin
 import requests
 import uuid
 import json
 import time
-from datetime import datetime
 import os
+from datetime import datetime
+from PIL import Image
+import io
+import re
 
 def generate_unique_id(prefix):
     # 生成一个随机的 UUID
@@ -101,7 +105,7 @@ def generate_gpts_payload(model, messages):
 
 # 创建 Flask 应用
 app = Flask(__name__)
-
+CORS(app, resources={r"/images/*": {"origins": "*"}})
 
 # 添加环境变量配置
 BASE_URL = os.getenv('BASE_URL', '')
@@ -109,8 +113,8 @@ PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 
-VERSION = '0.1.3'
-UPDATE_INFO = '增加对官方Dalle接口的兼容'
+VERSION = '0.1.4'
+UPDATE_INFO = '合并了 Upload 容器和 Backend 容器'
 
 with app.app_context():
     # 输出版本信息
@@ -1092,6 +1096,15 @@ def catch_all(path):
     print(f"[{datetime.now()}] 请求体: {request.data}")
 
     return jsonify({"message": "Unknown"}), 200
+
+
+@app.route('/images/<filename>')
+@cross_origin()  # 使用装饰器来允许跨域请求
+def get_image(filename):
+    # 检查文件是否存在
+    if not os.path.isfile(os.path.join('images', filename)):
+        return "文件不存在哦！", 404
+    return send_from_directory('images', filename)
 
 # 运行 Flask 应用
 if __name__ == '__main__':
