@@ -2,56 +2,17 @@
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
-本项目支持将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应。
+本项目支持：
+
+1. 将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应。
+
+2. 将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/images/generations` 接口
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
 ## 更新日志
 
-### 0.1.2
-
-- 紧急修复：GPTS 未携带消息的问题
-
-- 请使用 `0.1.0` 和 `0.1.1` 版本的服务尽快升级！
-
-### 0.1.1
-
-- 支持 `gpt-3.5-turbo` 模型
-
-### 0.1.0
-
-- 重磅更新
-
-- 已支持访问大部分的GPTS
-
-- 注意：本次更新需要更新 `docker-compose.yml` 文件以及 `gpts.json` 文件
-
-### 0.0.11
-
-- 修复一些偶现的bug
-
-### 0.0.10
-
-- 已支持非流式响应
-
-- 更新latest版本镜像
-
-### 0.0.9
-
-- 修复在 ChatGPT-Next-Web 网页端修改请求接口后出现 `Failed to fetch` 报错的问题
-
-### 0.0.8
-
-- 增加了对 GPT-4-Mobile 模型的支持，模型名为 `gpt-4-mobile`
-
-### 0.0.7
-
-- 一定程度上修复图片无法正常生成的问题
-- 注意：`docker-compsoe.yml`有更新
-
-### 0.0.6
-
-- 修复接入ChatGPT-Next-Web后回复会携带上次的回复的Bug
+见 `Release` 页面。
 
 ## 注意
 
@@ -85,7 +46,11 @@
 
 - UPLOAD_BASE_URL：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的 Uploader  容器地址，如：http://127.0.0.1:50012
 
-- KEY_FOR_GPTS_INFO：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key。
+- KEY_FOR_GPTS_INFO：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
+
+```json
+{}
+```
 
 ## GPTS配置说明
 
@@ -107,6 +72,43 @@
 ```
 
 注意：使用该配置的时候需要保证正确填写 `docker-compose.yml` 的环境变量 `KEY_FOR_GPTS_INFO`，同时该变量设置的 `key` 允许访问所有配置的 GPTS。
+
+## 绘图接口使用说明
+
+接口URI：`/v1/images/generations`
+
+请求方式：`POST`
+
+请求头：正常携带 `Authorization` 和 `Content-Type` 即可，`Authorization` 的值为 `Bearer <Pandora-Next 的 fk>`，`Content-Type` 的值为 `application/json`
+
+请求体格式示例：
+
+```json
+{
+    "model": "gpt-4-s",
+    "prompt": "A cute baby sea otter"
+}
+```
+
+请求体参数说明：
+
+- model：模型名称，需要支持绘图功能，否则绘图结果将为空
+
+- prompt：绘图的 Prompt
+
+响应体格式示例：
+
+```json
+{
+    "created": 1702788293,
+    "data": [
+        {
+            "url": "http://<upload 容器公网ip>:50012/images/image_20231217044452.png"
+        }
+    ],
+    "reply": "\n```\n{\"size\":\"1024x1024\",\"prompt\":\"A cute baby sea otter floating on its back in calm, clear waters. The otter has soft, fluffy brown fur, and its small, round eyes are shining brightly. It's holding a small starfish in its tiny paws. The sun is setting in the background, casting a golden glow over the scene. The water reflects the colors of the sunset, with gentle ripples around the otter. There are a few seagulls flying in the distance under the pastel-colored sky.\"}Here is the image of a cute baby sea otter floating on its back."
+}
+```
 
 ## 示例
 
