@@ -33,6 +33,7 @@
 >
 > 3. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到Pandora-Next的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
 >
+> 4. 本项目并不能绕过 OpenAI 和 PandoraNext 官方的限制，只提供便利，不提供绕过。
 
 ## 支持的模型
 
