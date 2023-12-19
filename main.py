@@ -127,6 +127,16 @@ with app.app_context():
         raise Exception('PROXY_API_PREFIX is not set')
     else:
         print(f"PROXY_API_PREFIX: {PROXY_API_PREFIX}")
+
+    if not UPLOAD_BASE_URL:
+        print("UPLOAD_BASE_URL 未设置，绘图功能将无法正常使用")
+    else:
+        print(f"UPLOAD_BASE_URL: {UPLOAD_BASE_URL}")
+
+    if not KEY_FOR_GPTS_INFO:
+        print("KEY_FOR_GPTS_INFO 未设置，请将 gpts.json 中仅保留 “{}” 作为内容")
+    else:
+        print(f"KEY_FOR_GPTS_INFO: {KEY_FOR_GPTS_INFO}")
     
     print(f"==========================================")
 
