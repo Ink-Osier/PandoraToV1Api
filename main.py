@@ -10,6 +10,8 @@ from datetime import datetime
 from PIL import Image
 import io
 import re
+import threading
+from queue import Queue, Empty
 
 def generate_unique_id(prefix):
     # 生成一个随机的 UUID
@@ -103,9 +105,9 @@ PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 
-VERSION = '0.1.6'
+VERSION = '0.1.7'
 # VERSION = 'test'
-UPDATE_INFO = '对于自带的三个模型，支持多个名字映射到同一个模型'
+UPDATE_INFO = '重构代码，优化输出稳定性'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -382,6 +384,362 @@ def replace_complete_citation(text, citations):
 
     return replaced_text, remaining_text, is_potential_citation
 
+def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_key, chat_message_id, model):
+    all_new_text = ""
+
+    # 当前时间戳
+    timestamp = int(time.time())
+
+    buffer = ""
+    last_full_text = ""  # 用于存储之前所有出现过的 parts 组成的完整文本
+    last_full_code = ""
+    last_full_code_result = ""
+    last_content_type = None  # 用于记录上一个消息的内容类型
+    conversation_id = ''
+    citation_buffer = ""
+    citation_accumulating = False
+    for chunk in upstream_response.iter_content(chunk_size=1024):
+        if chunk:
+            buffer += chunk.decode('utf-8')
+            # 检查是否存在 "event: ping"，如果存在，则只保留 "data:" 后面的内容
+            if "event: ping" in buffer:
+                if "data:" in buffer:
+                    buffer = buffer.split("data:", 1)[1]
+                    buffer = "data:" + buffer
+            # 使用正则表达式移除特定格式的字符串
+            # print("应用正则表达式之前的 buffer:", buffer.replace('\n', '\\n'))
+            buffer = re.sub(r'data: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}(\r\n|\r|\n){2}', '', buffer)
+            # print("应用正则表达式之后的 buffer:", buffer.replace('\n', '\\n'))
+
+
+
+            while 'data:' in buffer and '\n\n' in buffer:
+                end_index = buffer.index('\n\n') + 2
+                complete_data, buffer = buffer[:end_index], buffer[end_index:]
+                # 解析 data 块
+                try:
+                    data_json = json.loads(complete_data.replace('data: ', ''))
+                    # print(f"data_json: {data_json}")
+                    message = data_json.get("message", {})
+
+                    if message == {} or message == None:
+                        print(f"message 为空: data_json: {data_json}")
+
+                    message_status = message.get("status")
+                    content = message.get("content", {})
+                    role = message.get("author", {}).get("role")
+                    content_type = content.get("content_type")
+                    # print(f"content_type: {content_type}")
+                    # print(f"last_content_type: {last_content_type}")
+
+                    metadata = {}
+                    citations = []
+                    try:
+                        metadata = message.get("metadata", {})
+                        citations = metadata.get("citations", [])
+                    except:
+                        pass
+                    name = message.get("author", {}).get("name")
+                    if (role == "user" or message_status == "finished_successfully" or role == "system") and role != "tool":
+                        # 如果是用户发来的消息，直接舍弃
+                        continue
+                    try:
+                        conversation_id = data_json.get("conversation_id")
+                        # print(f"conversation_id: {conversation_id}")
+                        if conversation_id:
+                            data_queue.put(('conversation_id', conversation_id))
+                    except:
+                        pass
+                        # 只获取新的部分
+                    new_text = ""
+                    is_img_message = False
+                    parts = content.get("parts", [])
+                    for part in parts:
+                        try:
+                            # print(f"part: {part}")
+                            # print(f"part type: {part.get('content_type')}")
+                            if part.get('content_type') == 'image_asset_pointer':
+                                print(f"find img message~")
+                                is_img_message = True
+                                asset_pointer = part.get('asset_pointer').replace('file-service://', '')
+                                print(f"asset_pointer: {asset_pointer}")
+                                image_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
+
+                                headers = {
+                                    "Authorization": f"Bearer {api_key}"
+                                }
+                                image_response = requests.get(image_url, headers=headers)
+
+                                if image_response.status_code == 200:
+                                    download_url = image_response.json().get('download_url')
+                                    print(f"download_url: {download_url}")
+                                    # 从URL下载图片
+                                    # image_data = requests.get(download_url).content
+                                    image_download_response = requests.get(download_url)
+                                    # print(f"image_download_response: {image_download_response.text}")
+                                    if image_download_response.status_code == 200:
+                                        print(f"下载图片成功")
+                                        image_data = image_download_response.content
+                                        today_image_url = save_image(image_data)  # 保存图片，并获取文件名
+                                        new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
+                                    else:
+                                        print(f"下载图片失败: {image_download_response.text}")
+                                    if last_content_type == "code":
+                                        new_text = "\n```\n" + new_text
+                                    print(f"new_text: {new_text}")
+                                    is_img_message = True
+                                else:
+                                    print(f"获取图片下载链接失败: {image_response.text}")
+                        except:
+                            pass
+                                
+
+                    if is_img_message == False:
+                        # print(f"data_json: {data_json}")
+                        if content_type == "multimodal_text" and last_content_type == "code":
+                            new_text = "\n```\n" + content.get("text", "")
+                        elif role == "tool" and name == "dalle.text2im":
+                            print(f"无视消息: {content.get('text', '')}")
+                            continue
+                        # 代码块特殊处理
+                        if content_type == "code" and last_content_type != "code" and content_type != None:
+                            full_code = ''.join(content.get("text", ""))
+                            new_text = "\n```\n" + full_code[len(last_full_code):]
+                            # print(f"full_code: {full_code}")
+                            # print(f"last_full_code: {last_full_code}")
+                            # print(f"new_text: {new_text}")
+                            last_full_code = full_code  # 更新完整代码以备下次比较
+                            
+                        elif last_content_type == "code" and content_type != "code" and content_type != None:
+                            full_code = ''.join(content.get("text", ""))
+                            new_text = "\n```\n" + full_code[len(last_full_code):]
+                            # print(f"full_code: {full_code}")
+                            # print(f"last_full_code: {last_full_code}")
+                            # print(f"new_text: {new_text}")
+                            last_full_code = ""  # 更新完整代码以备下次比较
+
+                        elif content_type == "code" and last_content_type == "code" and content_type != None:
+                            full_code = ''.join(content.get("text", ""))
+                            new_text = full_code[len(last_full_code):]
+                            # print(f"full_code: {full_code}")
+                            # print(f"last_full_code: {last_full_code}")
+                            # print(f"new_text: {new_text}")
+                            last_full_code = full_code  # 更新完整代码以备下次比较
+                            
+                        else:
+                            # 只获取新的 parts
+                            parts = content.get("parts", [])
+                            full_text = ''.join(parts)
+                            new_text = full_text[len(last_full_text):]
+                            last_full_text = full_text  # 更新完整文本以备下次比较
+                            if "\u3010" in new_text and not citation_accumulating:
+                                citation_accumulating = True
+                                citation_buffer = citation_buffer + new_text
+                                # print(f"开始积累引用: {citation_buffer}")
+                            elif citation_accumulating:
+                                citation_buffer += new_text
+                                # print(f"积累引用: {citation_buffer}")
+                            if citation_accumulating:
+                                if is_valid_citation_format(citation_buffer):
+                                    # print(f"合法格式: {citation_buffer}")
+                                    # 继续积累
+                                    if is_complete_citation_format(citation_buffer):
+
+                                        # 替换完整的引用格式
+                                        replaced_text, remaining_text, is_potential_citation = replace_complete_citation(citation_buffer, citations)
+                                        # print(replaced_text)  # 输出替换后的文本
+                                        new_text = replaced_text
+                                        
+                                        if(is_potential_citation):
+                                            citation_buffer = remaining_text
+                                        else:
+                                            citation_accumulating = False
+                                            citation_buffer = ""
+                                        # print(f"替换完整的引用格式: {new_text}")
+                                    else:
+                                        continue
+                                else:
+                                    # 不是合法格式，放弃积累并响应
+                                    # print(f"不合法格式: {citation_buffer}")
+                                    new_text = citation_buffer
+                                    citation_accumulating = False
+                                    citation_buffer = ""
+
+
+                        # Python 工具执行输出特殊处理
+                        if role == "tool" and name == "python" and last_content_type != "execution_output" and content_type != None:
+                            
+
+                            full_code_result = ''.join(content.get("text", ""))
+                            new_text = "`Result:` \n```\n" + full_code_result[len(last_full_code_result):]
+                            if last_content_type == "code":
+                                new_text = "\n```\n" + new_text
+                            # print(f"full_code_result: {full_code_result}")
+                            # print(f"last_full_code_result: {last_full_code_result}")
+                            # print(f"new_text: {new_text}")
+                            last_full_code_result = full_code_result  # 更新完整代码以备下次比较
+                        elif last_content_type == "execution_output" and (role != "tool" or name != "python") and content_type != None:
+                            # new_text = content.get("text", "") + "\n```"
+                            full_code_result = ''.join(content.get("text", ""))
+                            new_text = full_code_result[len(last_full_code_result):] + "\n```\n"
+                            if content_type == "code":
+                                new_text =  new_text + "\n```\n"
+                            # print(f"full_code_result: {full_code_result}")
+                            # print(f"last_full_code_result: {last_full_code_result}")
+                            # print(f"new_text: {new_text}")
+                            last_full_code_result = ""  # 更新完整代码以备下次比较
+                        elif last_content_type == "execution_output" and role == "tool" and name == "python" and content_type != None:
+                            full_code_result = ''.join(content.get("text", ""))
+                            new_text = full_code_result[len(last_full_code_result):]
+                            # print(f"full_code_result: {full_code_result}")
+                            # print(f"last_full_code_result: {last_full_code_result}")
+                            # print(f"new_text: {new_text}")
+                            last_full_code_result = full_code_result
+
+                    # print(f"[{datetime.now()}] 收到数据: {data_json}")
+                    # print(f"[{datetime.now()}] 收到的完整文本: {full_text}")
+                    # print(f"[{datetime.now()}] 上次收到的完整文本: {last_full_text}")
+                    # print(f"[{datetime.now()}] 新的文本: {new_text}")
+
+                    # 更新 last_content_type
+                    if content_type != None:
+                        last_content_type = content_type if role != "user" else last_content_type
+
+                    model_slug = message.get("metadata", {}).get("model_slug") or model
+                    new_data = {
+                        "id": chat_message_id,
+                        "object": "chat.completion.chunk",
+                        "created": timestamp,
+                        "model": model_slug,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {
+                                    "content": ''.join(new_text)
+                                },
+                                "finish_reason": None
+                            }
+                        ]
+                    }
+                    # print(f"Role: {role}")
+                    print(f"[{datetime.now()}] 发送消息: {new_text}")
+                    tmp = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
+                    # print(f"[{datetime.now()}] 发送数据: {tmp}")
+                    # 累积 new_text
+                    all_new_text += new_text
+                    q_data = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
+                    data_queue.put(q_data)
+                    last_data_time[0] = time.time()
+                    if stop_event.is_set():
+                        break
+                except json.JSONDecodeError:
+                    # print("JSON 解析错误")
+                    print(f"[{datetime.now()}] 发送数据: {complete_data}")
+                    if complete_data == 'data: [DONE]\n\n':
+                        print(f"[{datetime.now()}] 会话结束")
+                        q_data = complete_data
+                        data_queue.put(('all_new_text', all_new_text))
+                        data_queue.put(q_data)
+                        last_data_time[0] = time.time()
+                        if stop_event.is_set():
+                            break
+    if citation_buffer != "":
+        new_data = {
+            "id": chat_message_id,
+            "object": "chat.completion.chunk",
+            "created": timestamp,
+            "model": message.get("metadata", {}).get("model_slug"),
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {
+                        "content": ''.join(citation_buffer)
+                    },
+                    "finish_reason": None
+                }
+            ]
+        }
+        tmp = 'data: ' + json.dumps(new_data) + '\n\n'
+        # print(f"[{datetime.now()}] 发送数据: {tmp}")
+        # 累积 new_text
+        all_new_text += citation_buffer
+        q_data =  'data: ' + json.dumps(new_data) + '\n\n'
+        data_queue.put(q_data)
+        last_data_time[0] = time.time()
+    if buffer:
+        # print(f"[{datetime.now()}] 最后的数据: {buffer}")
+        # delete_conversation(conversation_id, api_key)
+        try:
+            buffer_json = json.loads(buffer)
+            error_message = buffer_json.get("detail", {}).get("message", "未知错误")
+            error_data = {
+                        "id": chat_message_id,
+                        "object": "chat.completion.chunk",
+                        "created": timestamp,
+                        "model": "error",
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {
+                                    "content": ''.join("```\n" + error_message + "\n```")
+                                },
+                                "finish_reason": None
+                            }
+                        ]
+                    }
+            tmp = 'data: ' + json.dumps(error_data) + '\n\n'
+            print(f"[{datetime.now()}] 发送最后的数据: {tmp}")
+            # 累积 new_text
+            all_new_text += ''.join("```\n" + error_message + "\n```")
+            q_data = 'data: ' + json.dumps(error_data) + '\n\n'
+            data_queue.put(q_data)
+            last_data_time[0] = time.time()
+            complete_data = 'data: [DONE]\n\n'
+            print(f"[{datetime.now()}] 会话结束")
+            q_data = complete_data
+            data_queue.put(('all_new_text', all_new_text))
+            data_queue.put(q_data)
+            last_data_time[0] = time.time()
+        except:
+            # print("JSON 解析错误")
+            print(f"[{datetime.now()}] 发送最后的数据: {buffer}")
+            q_data =  buffer
+            data_queue.put(q_data)
+            last_data_time[0] = time.time()
+            complete_data = 'data: [DONE]\n\n'
+            print(f"[{datetime.now()}] 会话结束")
+            q_data = complete_data
+            data_queue.put(('all_new_text', all_new_text))
+            data_queue.put(q_data)
+            last_data_time[0] = time.time()
+
+def keep_alive(last_data_time, stop_event, queue, model,  chat_message_id):
+    while not stop_event.is_set():
+        if time.time() - last_data_time[0] >=1:
+            print(f"[{datetime.now()}] 发送保活消息")
+            # 当前时间戳
+            timestamp = int(time.time())
+            new_data = {
+                "id": chat_message_id,
+                "object": "chat.completion.chunk",
+                "created": timestamp,
+                "model": model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "content": ''
+                        },
+                        "finish_reason": None
+                    }
+                ]
+            }
+            queue.put(f'data: {json.dumps(new_data)}\n\n')  # 发送保活消息
+            last_data_time[0] = time.time()
+        time.sleep(1)
+
+import threading
+import time
 # 定义 Flask 路由
 @app.route('/v1/chat/completions', methods=['POST'])
 def chat_completions():
@@ -410,305 +768,52 @@ def chat_completions():
     # 处理流式响应
     def generate():
         nonlocal all_new_text  # 引用外部变量
+        data_queue = Queue()
+        stop_event = threading.Event()
+        last_data_time = [time.time()]
         chat_message_id = generate_unique_id("chatcmpl")
-        # 当前时间戳
-        timestamp = int(time.time())
 
-        buffer = ""
-        last_full_text = ""  # 用于存储之前所有出现过的 parts 组成的完整文本
-        last_full_code = ""
-        last_full_code_result = ""
-        last_content_type = None  # 用于记录上一个消息的内容类型
+        conversation_id_print_tag = False
+
         conversation_id = ''
-        citation_buffer = ""
-        citation_accumulating = False
-        for chunk in upstream_response.iter_content(chunk_size=1024):
-            if chunk:
-                buffer += chunk.decode('utf-8')
-                # 检查是否存在 "event: ping"，如果存在，则只保留 "data:" 后面的内容
-                if "event: ping" in buffer:
-                    if "data:" in buffer:
-                        buffer = buffer.split("data:", 1)[1]
-                        buffer = "data:" + buffer
-                # 使用正则表达式移除特定格式的字符串
-                # print("应用正则表达式之前的 buffer:", buffer.replace('\n', '\\n'))
-                buffer = re.sub(r'data: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}(\r\n|\r|\n){2}', '', buffer)
-                # print("应用正则表达式之后的 buffer:", buffer.replace('\n', '\\n'))
 
+        # 启动数据处理线程
+        fetcher_thread = threading.Thread(target=data_fetcher, args=(upstream_response, data_queue, stop_event, last_data_time, api_key, chat_message_id, model))
+        fetcher_thread.start()
 
+        # 启动保活线程
+        keep_alive_thread = threading.Thread(target=keep_alive, args=(last_data_time, stop_event, data_queue, model, chat_message_id))
+        keep_alive_thread.start()
 
-                while 'data:' in buffer and '\n\n' in buffer:
-                    end_index = buffer.index('\n\n') + 2
-                    complete_data, buffer = buffer[:end_index], buffer[end_index:]
-                    # 解析 data 块
-                    try:
-                        data_json = json.loads(complete_data.replace('data: ', ''))
-                        # print(f"data_json: {data_json}")
-                        message = data_json.get("message", {})
+        try:
+            while True:
+                data = data_queue.get()
+                if isinstance(data, tuple) and data[0] == 'all_new_text':
+                    # 更新 all_new_text
+                    print(f"[{datetime.now()}] 完整消息: {data[1]}")
+                    all_new_text += data[1]
+                elif isinstance(data, tuple) and data[0] == 'conversation_id':
+                    if conversation_id_print_tag == False:
+                        print(f"[{datetime.now()}] 当前会话id: {data[1]}")
+                        conversation_id_print_tag = True
+                    # 更新 conversation_id
+                    conversation_id = data[1]
+                    # print(f"[{datetime.now()}] 收到会话id: {conversation_id}")
+                elif data == 'data: [DONE]\n\n':
+                    # 接收到结束信号，退出循环
+                    print(f"[{datetime.now()}] 会话结束-外层")
+                    break
+                else:
+                    yield data
 
-                        if message == {} or message == None:
-                            print(f"message 为空: data_json: {data_json}")
+        finally:
+            stop_event.set()
+            fetcher_thread.join()
+            keep_alive_thread.join()
 
-                        message_status = message.get("status")
-                        content = message.get("content", {})
-                        role = message.get("author", {}).get("role")
-                        content_type = content.get("content_type")
-                        print(f"content_type: {content_type}")
-                        print(f"last_content_type: {last_content_type}")
-
-                        metadata = {}
-                        citations = []
-                        try:
-                            metadata = message.get("metadata", {})
-                            citations = metadata.get("citations", [])
-                        except:
-                            pass
-                        name = message.get("author", {}).get("name")
-                        if (role == "user" or message_status == "finished_successfully" or role == "system") and role != "tool":
-                            # 如果是用户发来的消息，直接舍弃
-                            continue
-                        try:
-                            conversation_id = data_json.get("conversation_id")
-                            print(f"conversation_id: {conversation_id}")
-                        except:
-                            pass
-                            # 只获取新的部分
-                        new_text = ""
-                        is_img_message = False
-                        parts = content.get("parts", [])
-                        for part in parts:
-                            try:
-                                # print(f"part: {part}")
-                                # print(f"part type: {part.get('content_type')}")
-                                if part.get('content_type') == 'image_asset_pointer':
-                                    print(f"find img message~")
-                                    is_img_message = True
-                                    asset_pointer = part.get('asset_pointer').replace('file-service://', '')
-                                    print(f"asset_pointer: {asset_pointer}")
-                                    image_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
-
-                                    headers = {
-                                        "Authorization": f"Bearer {api_key}"
-                                    }
-                                    image_response = requests.get(image_url, headers=headers)
-
-                                    if image_response.status_code == 200:
-                                        download_url = image_response.json().get('download_url')
-                                        print(f"download_url: {download_url}")
-                                        # 从URL下载图片
-                                        # image_data = requests.get(download_url).content
-                                        image_download_response = requests.get(download_url)
-                                        # print(f"image_download_response: {image_download_response.text}")
-                                        if image_download_response.status_code == 200:
-                                            print(f"下载图片成功")
-                                            image_data = image_download_response.content
-                                            today_image_url = save_image(image_data)  # 保存图片，并获取文件名
-                                            new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
-                                        else:
-                                            print(f"下载图片失败: {image_download_response.text}")
-                                        if last_content_type == "code":
-                                            new_text = "\n```\n" + new_text
-                                        print(f"new_text: {new_text}")
-                                        is_img_message = True
-                                    else:
-                                        print(f"获取图片下载链接失败: {image_response.text}")
-                            except:
-                                pass
-                                    
-
-                        if is_img_message == False:
-                            # print(f"data_json: {data_json}")
-                            if content_type == "multimodal_text" and last_content_type == "code":
-                                new_text = "\n```\n" + content.get("text", "")
-                            elif role == "tool" and name == "dalle.text2im":
-                                print(f"无视消息: {content.get('text', '')}")
-                                continue
-                            # 代码块特殊处理
-                            if content_type == "code" and last_content_type != "code" and content_type != None:
-                                full_code = ''.join(content.get("text", ""))
-                                new_text = "\n```\n" + full_code[len(last_full_code):]
-                                # print(f"full_code: {full_code}")
-                                # print(f"last_full_code: {last_full_code}")
-                                # print(f"new_text: {new_text}")
-                                last_full_code = full_code  # 更新完整代码以备下次比较
-                                
-                            elif last_content_type == "code" and content_type != "code" and content_type != None:
-                                full_code = ''.join(content.get("text", ""))
-                                new_text = "\n```\n" + full_code[len(last_full_code):]
-                                # print(f"full_code: {full_code}")
-                                # print(f"last_full_code: {last_full_code}")
-                                # print(f"new_text: {new_text}")
-                                last_full_code = ""  # 更新完整代码以备下次比较
-
-                            elif content_type == "code" and last_content_type == "code" and content_type != None:
-                                full_code = ''.join(content.get("text", ""))
-                                new_text = full_code[len(last_full_code):]
-                                # print(f"full_code: {full_code}")
-                                # print(f"last_full_code: {last_full_code}")
-                                # print(f"new_text: {new_text}")
-                                last_full_code = full_code  # 更新完整代码以备下次比较
-                                
-                            else:
-                                # 只获取新的 parts
-                                parts = content.get("parts", [])
-                                full_text = ''.join(parts)
-                                new_text = full_text[len(last_full_text):]
-                                last_full_text = full_text  # 更新完整文本以备下次比较
-                                if "\u3010" in new_text and not citation_accumulating:
-                                    citation_accumulating = True
-                                    citation_buffer = citation_buffer + new_text
-                                    print(f"开始积累引用: {citation_buffer}")
-                                elif citation_accumulating:
-                                    citation_buffer += new_text
-                                    print(f"积累引用: {citation_buffer}")
-                                if citation_accumulating:
-                                    if is_valid_citation_format(citation_buffer):
-                                        print(f"合法格式: {citation_buffer}")
-                                        # 继续积累
-                                        if is_complete_citation_format(citation_buffer):
-
-                                            # 替换完整的引用格式
-                                            replaced_text, remaining_text, is_potential_citation = replace_complete_citation(citation_buffer, citations)
-                                            # print(replaced_text)  # 输出替换后的文本
-                                            new_text = replaced_text
-                                            
-                                            if(is_potential_citation):
-                                                citation_buffer = remaining_text
-                                            else:
-                                                citation_accumulating = False
-                                                citation_buffer = ""
-                                            print(f"替换完整的引用格式: {new_text}")
-                                        else:
-                                            continue
-                                    else:
-                                        # 不是合法格式，放弃积累并响应
-                                        print(f"不合法格式: {citation_buffer}")
-                                        new_text = citation_buffer
-                                        citation_accumulating = False
-                                        citation_buffer = ""
-
-
-                            # Python 工具执行输出特殊处理
-                            if role == "tool" and name == "python" and last_content_type != "execution_output" and content_type != None:
-                                
-
-                                full_code_result = ''.join(content.get("text", ""))
-                                new_text = "`Result:` \n```\n" + full_code_result[len(last_full_code_result):]
-                                if last_content_type == "code":
-                                    new_text = "\n```\n" + new_text
-                                # print(f"full_code_result: {full_code_result}")
-                                # print(f"last_full_code_result: {last_full_code_result}")
-                                # print(f"new_text: {new_text}")
-                                last_full_code_result = full_code_result  # 更新完整代码以备下次比较
-                            elif last_content_type == "execution_output" and (role != "tool" or name != "python") and content_type != None:
-                                # new_text = content.get("text", "") + "\n```"
-                                full_code_result = ''.join(content.get("text", ""))
-                                new_text = full_code_result[len(last_full_code_result):] + "\n```\n"
-                                if content_type == "code":
-                                    new_text =  new_text + "\n```\n"
-                                # print(f"full_code_result: {full_code_result}")
-                                # print(f"last_full_code_result: {last_full_code_result}")
-                                # print(f"new_text: {new_text}")
-                                last_full_code_result = ""  # 更新完整代码以备下次比较
-                            elif last_content_type == "execution_output" and role == "tool" and name == "python" and content_type != None:
-                                full_code_result = ''.join(content.get("text", ""))
-                                new_text = full_code_result[len(last_full_code_result):]
-                                # print(f"full_code_result: {full_code_result}")
-                                # print(f"last_full_code_result: {last_full_code_result}")
-                                # print(f"new_text: {new_text}")
-                                last_full_code_result = full_code_result
-
-                        # print(f"[{datetime.now()}] 收到数据: {data_json}")
-                        # print(f"[{datetime.now()}] 收到的完整文本: {full_text}")
-                        # print(f"[{datetime.now()}] 上次收到的完整文本: {last_full_text}")
-                        # print(f"[{datetime.now()}] 新的文本: {new_text}")
-
-                        # 更新 last_content_type
-                        if content_type != None:
-                            last_content_type = content_type if role != "user" else last_content_type
-
-                        
-                        new_data = {
-                            "id": chat_message_id,
-                            "object": "chat.completion.chunk",
-                            "created": timestamp,
-                            "model": message.get("metadata", {}).get("model_slug"),
-                            "choices": [
-                                {
-                                    "index": 0,
-                                    "delta": {
-                                        "content": ''.join(new_text)
-                                    },
-                                    "finish_reason": None
-                                }
-                            ]
-                        }
-                        # print(f"Role: {role}")
-                        print(f"[{datetime.now()}] 发送消息: {new_text}")
-                        tmp = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
-                        # print(f"[{datetime.now()}] 发送数据: {tmp}")
-                        # 累积 new_text
-                        all_new_text += new_text
-                        yield 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
-                    except json.JSONDecodeError:
-                        # print("JSON 解析错误")
-                        print(f"[{datetime.now()}] 发送数据: {complete_data}")
-                        if complete_data == 'data: [DONE]\n\n':
-                            print(f"[{datetime.now()}] 会话结束")
-                            yield complete_data
-        if citation_buffer != "":
-            new_data = {
-                "id": chat_message_id,
-                "object": "chat.completion.chunk",
-                "created": timestamp,
-                "model": message.get("metadata", {}).get("model_slug"),
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {
-                            "content": ''.join(citation_buffer)
-                        },
-                        "finish_reason": None
-                    }
-                ]
-            }
-            tmp = 'data: ' + json.dumps(new_data) + '\n\n'
-            # print(f"[{datetime.now()}] 发送数据: {tmp}")
-            # 累积 new_text
-            all_new_text += citation_buffer
-            yield 'data: ' + json.dumps(new_data) + '\n\n'
-        if buffer:
-            # print(f"[{datetime.now()}] 最后的数据: {buffer}")
-            delete_conversation(conversation_id, api_key)
-            try:
-                buffer_json = json.loads(buffer)
-                error_message = buffer_json.get("detail", {}).get("message", "未知错误")
-                error_data = {
-                            "id": chat_message_id,
-                            "object": "chat.completion.chunk",
-                            "created": timestamp,
-                            "model": "error",
-                            "choices": [
-                                {
-                                    "index": 0,
-                                    "delta": {
-                                        "content": ''.join("```\n" + error_message + "\n```")
-                                    },
-                                    "finish_reason": None
-                                }
-                            ]
-                        }
-                tmp = 'data: ' + json.dumps(error_data) + '\n\n'
-                print(f"[{datetime.now()}] 发送最后的数据: {tmp}")
-                # 累积 new_text
-                all_new_text += ''.join("```\n" + error_message + "\n```")
-                yield 'data: ' + json.dumps(error_data) + '\n\n'
-            except:
-                # print("JSON 解析错误")
-                print(f"[{datetime.now()}] 发送最后的数据: {buffer}")
-                yield buffer
-
-        delete_conversation(conversation_id, api_key)   
+            if conversation_id:
+                # print(f"[{datetime.now()}] 准备删除的会话id： {conversation_id}")
+                delete_conversation(conversation_id, api_key)     
             
 
     if not stream:
