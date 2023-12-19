@@ -104,6 +104,9 @@ BASE_URL = os.getenv('BASE_URL', '')
 PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
 UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
+# 添加环境变量配置
+API_PREFIX = os.getenv('API_PREFIX', '')
+
 
 VERSION = '0.1.7'
 # VERSION = 'test'
@@ -137,6 +140,15 @@ with app.app_context():
         print("KEY_FOR_GPTS_INFO 未设置，请将 gpts.json 中仅保留 “{}” 作为内容")
     else:
         print(f"KEY_FOR_GPTS_INFO: {KEY_FOR_GPTS_INFO}")
+
+    if not API_PREFIX:
+        print("API_PREFIX 未设置，安全性会有所下降")
+        print(f'Chat 接口 URI: /v1/chat/completions')
+        print(f'绘图接口 URI: /v1/images/generations')
+    else:
+        print(f"API_PREFIX: {API_PREFIX}")
+        print(f'Chat 接口 URI: /{API_PREFIX}/v1/chat/completions')
+        print(f'绘图接口 URI: /{API_PREFIX}/v1/images/generations')
     
     print(f"==========================================")
 
@@ -751,7 +763,7 @@ def keep_alive(last_data_time, stop_event, queue, model,  chat_message_id):
 import threading
 import time
 # 定义 Flask 路由
-@app.route('/v1/chat/completions', methods=['POST'])
+@app.route(f'/{API_PREFIX}/v1/chat/completions' if API_PREFIX else '/v1/chat/completions', methods=['POST'])
 def chat_completions():
     print(f"[{datetime.now()}] New Request")
     data = request.json
@@ -862,7 +874,7 @@ def chat_completions():
         return Response(generate(), mimetype='text/event-stream')
 
 
-@app.route('/v1/images/generations', methods=['POST'])
+@app.route(f'/{API_PREFIX}/v1/images/generations' if API_PREFIX else '/v1/images/generations', methods=['POST'])
 def images_generations():
     print(f"[{datetime.now()}] New Img Request")
     data = request.json
@@ -1228,20 +1240,20 @@ def after_request(response):
 
 
 # 特殊的 OPTIONS 请求处理器
-@app.route('/v1/chat/completions', methods=['OPTIONS'])
+@app.route(f'/{API_PREFIX}/v1/chat/completions' if API_PREFIX else '/v1/chat/completions', methods=['OPTIONS'])
 def options_handler():
     print(f"[{datetime.now()}] Options Request")
     return Response(status=200)
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+@app.route('/', defaults={'path': ''}, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
+@app.route('/<path:path>', methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
 def catch_all(path):
     print(f"[{datetime.now()}] 未知请求: {path}")
     print(f"[{datetime.now()}] 请求方法: {request.method}")
     print(f"[{datetime.now()}] 请求头: {request.headers}")
     print(f"[{datetime.now()}] 请求体: {request.data}")
 
-    return jsonify({"message": "Unknown"}), 200
+    return jsonify({"message": "Welcome to Inker's World"}), 200
 
 
 @app.route('/images/<filename>')
