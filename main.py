@@ -12,6 +12,40 @@ import io
 import re
 import threading
 from queue import Queue, Empty
+import logging
+from logging.handlers import TimedRotatingFileHandler
+
+
+NEED_LOG_TO_FILE = os.getenv('NEED_LOG_TO_FILE', 'true').lower() == 'true'
+
+# 获取环境变量中的日志级别，如果没有设置，则默认为DEBUG
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG').upper()
+
+# 设置日志级别
+log_level_dict = {
+    'DEBUG': logging.DEBUG,
+    'INFO': logging.INFO,
+    'WARNING': logging.WARNING,
+    'ERROR': logging.ERROR,
+    'CRITICAL': logging.CRITICAL
+}
+
+log_formatter = logging.Formatter('%(asctime)s [%(levelname)s] - %(message)s')
+
+logger = logging.getLogger()
+logger.setLevel(log_level_dict.get(LOG_LEVEL, logging.DEBUG))
+
+# 如果环境变量指示需要输出到文件
+if NEED_LOG_TO_FILE:
+    log_filename = './log/access.log'
+    file_handler = TimedRotatingFileHandler(log_filename, when="midnight", interval=1, backupCount=30)
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
+
+# 添加标准输出流处理器（控制台输出）
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(log_formatter)
+logger.addHandler(stream_handler)
 
 def generate_unique_id(prefix):
     # 生成一个随机的 UUID
@@ -46,7 +80,7 @@ def fetch_gizmo_info(base_url, proxy_api_prefix, model_id):
     }
 
     response = requests.get(url, headers=headers)
-    # print(f"fetch_gizmo_info_response: {response.text}")
+    # logger.debug(f"fetch_gizmo_info_response: {response.text}")
     if response.status_code == 200:
         return response.json()
     else:
@@ -108,49 +142,52 @@ KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 API_PREFIX = os.getenv('API_PREFIX', '')
 
 
-VERSION = '0.1.8'
+VERSION = '0.1.9'
 # VERSION = 'test'
-UPDATE_INFO = '支持自定义本项目接口前缀'
+UPDATE_INFO = '支持自定义日志等级以及是否需要输出日志到文件'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
     global gpts_configurations  # 移到作用域的最开始
 
     # 输出版本信息
-    print(f"==========================================")
-    print(f"Version: {VERSION}")
-    print(f"Update Info: {UPDATE_INFO}")
+    logger.info(f"==========================================")
+    logger.info(f"Version: {VERSION}")
+    logger.info(f"Update Info: {UPDATE_INFO}")
+
+    logger.info(f"LOG_LEVEL: {LOG_LEVEL}")
+    logger.info(f"NEED_LOG_TO_FILE: {NEED_LOG_TO_FILE}")
 
 
     if not BASE_URL:
         raise Exception('BASE_URL is not set')
     else:
-        print(f"BASE_URL: {BASE_URL}")
+        logger.info(f"BASE_URL: {BASE_URL}")
     if not PROXY_API_PREFIX:
         raise Exception('PROXY_API_PREFIX is not set')
     else:
-        print(f"PROXY_API_PREFIX: {PROXY_API_PREFIX}")
+        logger.info(f"PROXY_API_PREFIX: {PROXY_API_PREFIX}")
 
     if not UPLOAD_BASE_URL:
-        print("UPLOAD_BASE_URL 未设置，绘图功能将无法正常使用")
+        logger.info("UPLOAD_BASE_URL 未设置，绘图功能将无法正常使用")
     else:
-        print(f"UPLOAD_BASE_URL: {UPLOAD_BASE_URL}")
+        logger.info(f"UPLOAD_BASE_URL: {UPLOAD_BASE_URL}")
 
     if not KEY_FOR_GPTS_INFO:
-        print("KEY_FOR_GPTS_INFO 未设置，请将 gpts.json 中仅保留 “{}” 作为内容")
+        logger.warning("KEY_FOR_GPTS_INFO 未设置，请将 gpts.json 中仅保留 “{}” 作为内容")
     else:
-        print(f"KEY_FOR_GPTS_INFO: {KEY_FOR_GPTS_INFO}")
+        logger.info(f"KEY_FOR_GPTS_INFO: {KEY_FOR_GPTS_INFO}")
 
     if not API_PREFIX:
-        print("API_PREFIX 未设置，安全性会有所下降")
-        print(f'Chat 接口 URI: /v1/chat/completions')
-        print(f'绘图接口 URI: /v1/images/generations')
+        logger.warning("API_PREFIX 未设置，安全性会有所下降")
+        logger.info(f'Chat 接口 URI: /v1/chat/completions')
+        logger.info(f'绘图接口 URI: /v1/images/generations')
     else:
-        print(f"API_PREFIX: {API_PREFIX}")
-        print(f'Chat 接口 URI: /{API_PREFIX}/v1/chat/completions')
-        print(f'绘图接口 URI: /{API_PREFIX}/v1/images/generations')
+        logger.info(f"API_PREFIX: {API_PREFIX}")
+        logger.info(f'Chat 接口 URI: /{API_PREFIX}/v1/chat/completions')
+        logger.info(f'绘图接口 URI: /{API_PREFIX}/v1/images/generations')
     
-    print(f"==========================================")
+    logger.info(f"==========================================")
 
     # 从环境变量中读取模型名称，支持用逗号分隔的多个名称
     GPT_4_S_New_Names = os.getenv('GPT_4_S_New_Name', 'gpt-4-s').split(',')
@@ -176,7 +213,7 @@ with app.app_context():
         })
 
 
-    print(f"GPTS 配置信息")
+    logger.info(f"GPTS 配置信息")
 
     # 加载配置并添加到全局列表
     gpts_data = load_gpts_config("./gpts.json")
@@ -185,13 +222,13 @@ with app.app_context():
     # 输出当前可用 GPTS name
     # 获取当前可用的 GPTS 模型列表
     accessible_model_list = get_accessible_model_list()
-    print(f"当前可用 GPTS 列表: {accessible_model_list}")
+    logger.info(f"当前可用 GPTS 列表: {accessible_model_list}")
 
     # 检查列表中是否有重复的模型名称
     if len(accessible_model_list) != len(set(accessible_model_list)):
         raise Exception("检测到重复的模型名称，请检查环境变量或配置文件。")
 
-    print(f"==========================================")
+    logger.info(f"==========================================")
 
     # print(f"GPTs Payload 生成测试")
 
@@ -232,14 +269,14 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
 
     payload = {}
 
-    print(f"model: {model}")
+    logger.info(f"model: {model}")
 
     # 查找模型配置
     model_config = find_model_config(model)
     if model_config:
         # 检查是否有 ori_name
         ori_model_name = model_config.get('ori_name', model)
-        print(f"原模型名: {ori_model_name}")
+        logger.info(f"原模型名: {ori_model_name}")
         if ori_model_name == 'gpt-4-s':
             payload = {
                 # 构建 payload
@@ -295,7 +332,7 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
         return response
 
 def delete_conversation(conversation_id, api_key):
-    print(f"[{datetime.now()}] 准备删除的会话id： {conversation_id}")
+    logger.info(f"准备删除的会话id： {conversation_id}")
     if conversation_id:
         patch_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/conversation/{conversation_id}"
         patch_headers = {
@@ -305,9 +342,9 @@ def delete_conversation(conversation_id, api_key):
         response = requests.patch(patch_url, headers=patch_headers, json=patch_data)
 
         if response.status_code == 200:
-            print(f"[{datetime.now()}] 删除会话 {conversation_id} 成功")
+            logger.info(f"删除会话 {conversation_id} 成功")
         else:
-            print(f"[{datetime.now()}] PATCH 请求失败: {response.text}")
+            logger.error(f"PATCH 请求失败: {response.text}")
 
 from PIL import Image
 import io
@@ -319,18 +356,18 @@ def save_image(image_data, path='images'):
         current_time = datetime.now().strftime('%Y%m%d%H%M%S')
         filename = f'image_{current_time}.png'
         full_path = os.path.join(path, filename)
-        print(f"完整的文件路径: {full_path}")  # 打印完整路径
+        logger.debug(f"完整的文件路径: {full_path}")  # 打印完整路径
         # print(f"filename: {filename}")
         # 使用 PIL 打开图像数据
         with Image.open(io.BytesIO(image_data)) as image:
             # 保存为 PNG 格式
             image.save(os.path.join(path, filename), 'PNG')
 
-        print(f"保存图片成功: {filename}")
+        logger.debug(f"保存图片成功: {filename}")
 
         return os.path.join(path, filename)
     except Exception as e:
-        print(f"保存图片时出现异常: {e}")
+        logger.error(f"保存图片时出现异常: {e}")
 
 
 
@@ -372,10 +409,10 @@ def replace_complete_citation(text, citations):
         citation_number = match.group(1)
         for citation in citations:
             cited_message_idx = citation.get('metadata', {}).get('extra', {}).get('cited_message_idx')
-            print(f"cited_message_idx: {cited_message_idx}")
-            print(f"citation_number: {citation_number}")
-            print(f"is citation_number == cited_message_idx: {cited_message_idx == int(citation_number)}")
-            print(f"citation: {citation}")
+            logger.debug(f"cited_message_idx: {cited_message_idx}")
+            logger.debug(f"citation_number: {citation_number}")
+            logger.debug(f"is citation_number == cited_message_idx: {cited_message_idx == int(citation_number)}")
+            logger.debug(f"citation: {citation}")
             if cited_message_idx == int(citation_number):
                 url = citation.get("metadata", {}).get("url", "")
                 return f"[[{citation_number}]({url})]"
@@ -397,9 +434,9 @@ def replace_complete_citation(text, citations):
 
     # 替换掉replaced_text末尾的remaining_text
 
-    print(f"replaced_text: {replaced_text}")
-    print(f"remaining_text: {remaining_text}")
-    print(f"is_potential_citation: {is_potential_citation}")
+    logger.debug(f"replaced_text: {replaced_text}")
+    logger.debug(f"remaining_text: {remaining_text}")
+    logger.debug(f"is_potential_citation: {is_potential_citation}")
     if is_potential_citation:
         replaced_text = replaced_text[:-len(remaining_text)]
 
@@ -445,7 +482,7 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                     message = data_json.get("message", {})
 
                     if message == {} or message == None:
-                        print(f"message 为空: data_json: {data_json}")
+                        logger.debug(f"message 为空: data_json: {data_json}")
 
                     message_status = message.get("status")
                     content = message.get("content", {})
@@ -481,10 +518,10 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             # print(f"part: {part}")
                             # print(f"part type: {part.get('content_type')}")
                             if part.get('content_type') == 'image_asset_pointer':
-                                print(f"find img message~")
+                                logger.debug(f"find img message~")
                                 is_img_message = True
                                 asset_pointer = part.get('asset_pointer').replace('file-service://', '')
-                                print(f"asset_pointer: {asset_pointer}")
+                                logger.debug(f"asset_pointer: {asset_pointer}")
                                 image_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
 
                                 headers = {
@@ -494,24 +531,24 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
 
                                 if image_response.status_code == 200:
                                     download_url = image_response.json().get('download_url')
-                                    print(f"download_url: {download_url}")
+                                    logger.debug(f"download_url: {download_url}")
                                     # 从URL下载图片
                                     # image_data = requests.get(download_url).content
                                     image_download_response = requests.get(download_url)
                                     # print(f"image_download_response: {image_download_response.text}")
                                     if image_download_response.status_code == 200:
-                                        print(f"下载图片成功")
+                                        logger.debug(f"下载图片成功")
                                         image_data = image_download_response.content
                                         today_image_url = save_image(image_data)  # 保存图片，并获取文件名
                                         new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
                                     else:
-                                        print(f"下载图片失败: {image_download_response.text}")
+                                        logger.error(f"下载图片失败: {image_download_response.text}")
                                     if last_content_type == "code":
                                         new_text = "\n```\n" + new_text
-                                    print(f"new_text: {new_text}")
+                                    logger.debug(f"new_text: {new_text}")
                                     is_img_message = True
                                 else:
-                                    print(f"获取图片下载链接失败: {image_response.text}")
+                                    logger.error(f"获取图片下载链接失败: {image_response.text}")
                         except:
                             pass
                                 
@@ -521,7 +558,7 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                         if content_type == "multimodal_text" and last_content_type == "code":
                             new_text = "\n```\n" + content.get("text", "")
                         elif role == "tool" and name == "dalle.text2im":
-                            print(f"无视消息: {content.get('text', '')}")
+                            logger.debug(f"无视消息: {content.get('text', '')}")
                             continue
                         # 代码块特殊处理
                         if content_type == "code" and last_content_type != "code" and content_type != None:
@@ -618,10 +655,10 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             # print(f"new_text: {new_text}")
                             last_full_code_result = full_code_result
 
-                    # print(f"[{datetime.now()}] 收到数据: {data_json}")
-                    # print(f"[{datetime.now()}] 收到的完整文本: {full_text}")
-                    # print(f"[{datetime.now()}] 上次收到的完整文本: {last_full_text}")
-                    # print(f"[{datetime.now()}] 新的文本: {new_text}")
+                    # print(f"收到数据: {data_json}")
+                    # print(f"收到的完整文本: {full_text}")
+                    # print(f"上次收到的完整文本: {last_full_text}")
+                    # print(f"新的文本: {new_text}")
 
                     # 更新 last_content_type
                     if content_type != None:
@@ -644,9 +681,9 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                         ]
                     }
                     # print(f"Role: {role}")
-                    print(f"[{datetime.now()}] 发送消息: {new_text}")
+                    logger.info(f"发送消息: {new_text}")
                     tmp = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
-                    # print(f"[{datetime.now()}] 发送数据: {tmp}")
+                    # print(f"发送数据: {tmp}")
                     # 累积 new_text
                     all_new_text += new_text
                     q_data = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
@@ -656,9 +693,9 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                         break
                 except json.JSONDecodeError:
                     # print("JSON 解析错误")
-                    print(f"[{datetime.now()}] 发送数据: {complete_data}")
+                    logger.info(f"发送数据: {complete_data}")
                     if complete_data == 'data: [DONE]\n\n':
-                        print(f"[{datetime.now()}] 会话结束")
+                        logger.info(f"会话结束")
                         q_data = complete_data
                         data_queue.put(('all_new_text', all_new_text))
                         data_queue.put(q_data)
@@ -682,14 +719,14 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
             ]
         }
         tmp = 'data: ' + json.dumps(new_data) + '\n\n'
-        # print(f"[{datetime.now()}] 发送数据: {tmp}")
+        # print(f"发送数据: {tmp}")
         # 累积 new_text
         all_new_text += citation_buffer
         q_data =  'data: ' + json.dumps(new_data) + '\n\n'
         data_queue.put(q_data)
         last_data_time[0] = time.time()
     if buffer:
-        # print(f"[{datetime.now()}] 最后的数据: {buffer}")
+        # print(f"最后的数据: {buffer}")
         # delete_conversation(conversation_id, api_key)
         try:
             buffer_json = json.loads(buffer)
@@ -710,26 +747,26 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                         ]
                     }
             tmp = 'data: ' + json.dumps(error_data) + '\n\n'
-            print(f"[{datetime.now()}] 发送最后的数据: {tmp}")
+            logger.info(f"发送最后的数据: {tmp}")
             # 累积 new_text
             all_new_text += ''.join("```\n" + error_message + "\n```")
             q_data = 'data: ' + json.dumps(error_data) + '\n\n'
             data_queue.put(q_data)
             last_data_time[0] = time.time()
             complete_data = 'data: [DONE]\n\n'
-            print(f"[{datetime.now()}] 会话结束")
+            logger.info(f"会话结束")
             q_data = complete_data
             data_queue.put(('all_new_text', all_new_text))
             data_queue.put(q_data)
             last_data_time[0] = time.time()
         except:
             # print("JSON 解析错误")
-            print(f"[{datetime.now()}] 发送最后的数据: {buffer}")
+            logger.info(f"发送最后的数据: {buffer}")
             q_data =  buffer
             data_queue.put(q_data)
             last_data_time[0] = time.time()
             complete_data = 'data: [DONE]\n\n'
-            print(f"[{datetime.now()}] 会话结束")
+            logger.info(f"会话结束")
             q_data = complete_data
             data_queue.put(('all_new_text', all_new_text))
             data_queue.put(q_data)
@@ -738,7 +775,7 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
 def keep_alive(last_data_time, stop_event, queue, model,  chat_message_id):
     while not stop_event.is_set():
         if time.time() - last_data_time[0] >=1:
-            print(f"[{datetime.now()}] 发送保活消息")
+            logger.debug(f"发送保活消息")
             # 当前时间戳
             timestamp = int(time.time())
             new_data = {
@@ -765,7 +802,7 @@ import time
 # 定义 Flask 路由
 @app.route(f'/{API_PREFIX}/v1/chat/completions' if API_PREFIX else '/v1/chat/completions', methods=['POST'])
 def chat_completions():
-    print(f"[{datetime.now()}] New Request")
+    logger.info(f"New Request")
     data = request.json
     messages = data.get('messages')
     model = data.get('model')
@@ -779,7 +816,7 @@ def chat_completions():
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({"error": "Authorization header is missing or invalid"}), 401
     api_key = auth_header.split(' ')[1] 
-    print(f"api_key: {api_key}")
+    logger.info(f"api_key: {api_key}")
 
 
     upstream_response = send_text_prompt_and_get_response(messages, api_key, stream, model)
@@ -812,18 +849,18 @@ def chat_completions():
                 data = data_queue.get()
                 if isinstance(data, tuple) and data[0] == 'all_new_text':
                     # 更新 all_new_text
-                    print(f"[{datetime.now()}] 完整消息: {data[1]}")
+                    logger.info(f"完整消息: {data[1]}")
                     all_new_text += data[1]
                 elif isinstance(data, tuple) and data[0] == 'conversation_id':
                     if conversation_id_print_tag == False:
-                        print(f"[{datetime.now()}] 当前会话id: {data[1]}")
+                        logger.info(f"当前会话id: {data[1]}")
                         conversation_id_print_tag = True
                     # 更新 conversation_id
                     conversation_id = data[1]
-                    # print(f"[{datetime.now()}] 收到会话id: {conversation_id}")
+                    # print(f"收到会话id: {conversation_id}")
                 elif data == 'data: [DONE]\n\n':
                     # 接收到结束信号，退出循环
-                    print(f"[{datetime.now()}] 会话结束-外层")
+                    logger.debug(f"会话结束-外层")
                     break
                 else:
                     yield data
@@ -834,7 +871,7 @@ def chat_completions():
             keep_alive_thread.join()
 
             if conversation_id:
-                # print(f"[{datetime.now()}] 准备删除的会话id： {conversation_id}")
+                # print(f"准备删除的会话id： {conversation_id}")
                 delete_conversation(conversation_id, api_key)     
             
 
@@ -876,7 +913,7 @@ def chat_completions():
 
 @app.route(f'/{API_PREFIX}/v1/images/generations' if API_PREFIX else '/v1/images/generations', methods=['POST'])
 def images_generations():
-    print(f"[{datetime.now()}] New Img Request")
+    logger.info(f"New Img Request")
     data = request.json
     # messages = data.get('messages')
     model = data.get('model')
@@ -892,7 +929,7 @@ def images_generations():
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({"error": "Authorization header is missing or invalid"}), 401
     api_key = auth_header.split(' ')[1] 
-    print(f"api_key: {api_key}")
+    logger.info(f"api_key: {api_key}")
 
     image_urls = []
 
@@ -949,14 +986,14 @@ def images_generations():
                         message = data_json.get("message", {})
 
                         if message == {} or message == None:
-                            print(f"message 为空: data_json: {data_json}")
+                            logger.debug(f"message 为空: data_json: {data_json}")
 
                         message_status = message.get("status")
                         content = message.get("content", {})
                         role = message.get("author", {}).get("role")
                         content_type = content.get("content_type")
-                        print(f"content_type: {content_type}")
-                        print(f"last_content_type: {last_content_type}")
+                        # logger.debug(f"content_type: {content_type}")
+                        # logger.debug(f"last_content_type: {last_content_type}")
 
                         metadata = {}
                         citations = []
@@ -971,7 +1008,7 @@ def images_generations():
                             continue
                         try:
                             conversation_id = data_json.get("conversation_id")
-                            print(f"conversation_id: {conversation_id}")
+                            logger.debug(f"conversation_id: {conversation_id}")
                         except:
                             pass
                             # 只获取新的部分
@@ -983,10 +1020,10 @@ def images_generations():
                                 # print(f"part: {part}")
                                 # print(f"part type: {part.get('content_type')}")
                                 if part.get('content_type') == 'image_asset_pointer':
-                                    print(f"find img message~")
+                                    logger.debug(f"find img message~")
                                     is_img_message = True
                                     asset_pointer = part.get('asset_pointer').replace('file-service://', '')
-                                    print(f"asset_pointer: {asset_pointer}")
+                                    logger.debug(f"asset_pointer: {asset_pointer}")
                                     image_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
 
                                     headers = {
@@ -996,13 +1033,13 @@ def images_generations():
 
                                     if image_response.status_code == 200:
                                         download_url = image_response.json().get('download_url')
-                                        print(f"download_url: {download_url}")
+                                        logger.debug(f"download_url: {download_url}")
                                         # 从URL下载图片
                                         # image_data = requests.get(download_url).content
                                         image_download_response = requests.get(download_url)
                                         # print(f"image_download_response: {image_download_response.text}")
                                         if image_download_response.status_code == 200:
-                                            print(f"下载图片成功")
+                                            logger.debug(f"下载图片成功")
                                             image_data = image_download_response.content
                                             today_image_url = save_image(image_data)  # 保存图片，并获取文件名
                                             # new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
@@ -1010,14 +1047,14 @@ def images_generations():
                                             image_urls.append(image_link)  # 将图片链接保存到列表中
                                             new_text = ""
                                         else:
-                                            print(f"下载图片失败: {image_download_response.text}")
+                                            logger.error(f"下载图片失败: {image_download_response.text}")
                                         if last_content_type == "code":
                                             new_text = new_text
                                             # new_text = "\n```\n" + new_text
-                                        print(f"new_text: {new_text}")
+                                        logger.debug(f"new_text: {new_text}")
                                         is_img_message = True
                                     else:
-                                        print(f"获取图片下载链接失败: {image_response.text}")
+                                        logger.error(f"获取图片下载链接失败: {image_response.text}")
                             except:
                                 pass
                                     
@@ -1027,7 +1064,7 @@ def images_generations():
                             if content_type == "multimodal_text" and last_content_type == "code":
                                 new_text = "\n```\n" + content.get("text", "")
                             elif role == "tool" and name == "dalle.text2im":
-                                print(f"无视消息: {content.get('text', '')}")
+                                logger.debug(f"无视消息: {content.get('text', '')}")
                                 continue
                             # 代码块特殊处理
                             if content_type == "code" and last_content_type != "code" and content_type != None:
@@ -1063,13 +1100,13 @@ def images_generations():
                                 if "\u3010" in new_text and not citation_accumulating:
                                     citation_accumulating = True
                                     citation_buffer = citation_buffer + new_text
-                                    print(f"开始积累引用: {citation_buffer}")
+                                    logger.debug(f"开始积累引用: {citation_buffer}")
                                 elif citation_accumulating:
                                     citation_buffer += new_text
-                                    print(f"积累引用: {citation_buffer}")
+                                    logger.debug(f"积累引用: {citation_buffer}")
                                 if citation_accumulating:
                                     if is_valid_citation_format(citation_buffer):
-                                        print(f"合法格式: {citation_buffer}")
+                                        logger.debug(f"合法格式: {citation_buffer}")
                                         # 继续积累
                                         if is_complete_citation_format(citation_buffer):
 
@@ -1083,12 +1120,12 @@ def images_generations():
                                             else:
                                                 citation_accumulating = False
                                                 citation_buffer = ""
-                                            print(f"替换完整的引用格式: {new_text}")
+                                            logger.debug(f"替换完整的引用格式: {new_text}")
                                         else:
                                             continue
                                     else:
                                         # 不是合法格式，放弃积累并响应
-                                        print(f"不合法格式: {citation_buffer}")
+                                        logger.debug(f"不合法格式: {citation_buffer}")
                                         new_text = citation_buffer
                                         citation_accumulating = False
                                         citation_buffer = ""
@@ -1124,10 +1161,10 @@ def images_generations():
                                 # print(f"new_text: {new_text}")
                                 last_full_code_result = full_code_result
 
-                        # print(f"[{datetime.now()}] 收到数据: {data_json}")
-                        # print(f"[{datetime.now()}] 收到的完整文本: {full_text}")
-                        # print(f"[{datetime.now()}] 上次收到的完整文本: {last_full_text}")
-                        # print(f"[{datetime.now()}] 新的文本: {new_text}")
+                        # print(f"收到数据: {data_json}")
+                        # print(f"收到的完整文本: {full_text}")
+                        # print(f"上次收到的完整文本: {last_full_text}")
+                        # print(f"新的文本: {new_text}")
 
                         # 更新 last_content_type
                         if content_type != None:
@@ -1150,17 +1187,17 @@ def images_generations():
                             ]
                         }
                         # print(f"Role: {role}")
-                        print(f"[{datetime.now()}] 发送消息: {new_text}")
+                        logger.info(f"发送消息: {new_text}")
                         tmp = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
-                        # print(f"[{datetime.now()}] 发送数据: {tmp}")
+                        # print(f"发送数据: {tmp}")
                         # 累积 new_text
                         all_new_text += new_text
                         yield 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
                     except json.JSONDecodeError:
                         # print("JSON 解析错误")
-                        print(f"[{datetime.now()}] 发送数据: {complete_data}")
+                        logger.info(f"发送数据: {complete_data}")
                         if complete_data == 'data: [DONE]\n\n':
-                            print(f"[{datetime.now()}] 会话结束")
+                            logger.info(f"会话结束")
                             yield complete_data
         if citation_buffer != "":
             new_data = {
@@ -1179,12 +1216,12 @@ def images_generations():
                 ]
             }
             tmp = 'data: ' + json.dumps(new_data) + '\n\n'
-            # print(f"[{datetime.now()}] 发送数据: {tmp}")
+            # print(f"发送数据: {tmp}")
             # 累积 new_text
             all_new_text += citation_buffer
             yield 'data: ' + json.dumps(new_data) + '\n\n'
         if buffer:
-            # print(f"[{datetime.now()}] 最后的数据: {buffer}")
+            # print(f"最后的数据: {buffer}")
             delete_conversation(conversation_id, api_key)
             try:
                 buffer_json = json.loads(buffer)
@@ -1205,13 +1242,13 @@ def images_generations():
                             ]
                         }
                 tmp = 'data: ' + json.dumps(error_data) + '\n\n'
-                print(f"[{datetime.now()}] 发送最后的数据: {tmp}")
+                logger.info(f"发送最后的数据: {tmp}")
                 # 累积 new_text
                 all_new_text += ''.join("```\n" + error_message + "\n```")
                 yield 'data: ' + json.dumps(error_data) + '\n\n'
             except:
                 # print("JSON 解析错误")
-                print(f"[{datetime.now()}] 发送最后的数据: {buffer}")
+                logger.info(f"发送最后的数据: {buffer}")
                 yield buffer
 
         delete_conversation(conversation_id, api_key)   
@@ -1242,16 +1279,16 @@ def after_request(response):
 # 特殊的 OPTIONS 请求处理器
 @app.route(f'/{API_PREFIX}/v1/chat/completions' if API_PREFIX else '/v1/chat/completions', methods=['OPTIONS'])
 def options_handler():
-    print(f"[{datetime.now()}] Options Request")
+    logger.info(f"Options Request")
     return Response(status=200)
 
 @app.route('/', defaults={'path': ''}, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
 @app.route('/<path:path>', methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
 def catch_all(path):
-    print(f"[{datetime.now()}] 未知请求: {path}")
-    print(f"[{datetime.now()}] 请求方法: {request.method}")
-    print(f"[{datetime.now()}] 请求头: {request.headers}")
-    print(f"[{datetime.now()}] 请求体: {request.data}")
+    logger.debug(f"未知请求: {path}")
+    logger.debug(f"请求方法: {request.method}")
+    logger.debug(f"请求头: {request.headers}")
+    logger.debug(f"请求体: {request.data}")
 
     return jsonify({"message": "Welcome to Inker's World"}), 200
 

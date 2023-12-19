@@ -15,6 +15,8 @@ services:
       - GPT_4_MOBILE_NEW_NAME=gpt-4-mobile # gpt-4-mobile模型的自定义模型名称，支持同时设置多个，用英文逗号分隔
       - GPT_3_5_NEW_NAME=gpt-3.5-turbo # gpt-3.5-turbo模型的自定义模型名称，支持同时设置多个，用英文逗号分隔
       - API_PREFIX=<本项目接口前缀> # 本项目/v1接口的前缀，示例：666，如果留空默认为原版本一致
+      - LOG_LEVEL=<日志等级> # 日志输出等级，可选值：DEBUG,INFO,WARNING,ERROR,CRITICAL
+      - NEED_LOG_TO_FILE=<是否需要输出日志到文件> # 是否需要输出日志到文件，可选值：true,false
     volumes:
       - ./log:/app/log
       - ./images:/app/images
