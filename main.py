@@ -108,9 +108,9 @@ KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 API_PREFIX = os.getenv('API_PREFIX', '')
 
 
-VERSION = '0.1.7'
+VERSION = '0.1.8'
 # VERSION = 'test'
-UPDATE_INFO = '重构代码，优化输出稳定性'
+UPDATE_INFO = '支持自定义本项目接口前缀'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
