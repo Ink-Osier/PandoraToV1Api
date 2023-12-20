@@ -142,9 +142,9 @@ KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 API_PREFIX = os.getenv('API_PREFIX', '')
 
 
-VERSION = '0.1.9'
+VERSION = '0.1.10'
 # VERSION = 'test'
-UPDATE_INFO = '支持自定义日志等级以及是否需要输出日志到文件'
+UPDATE_INFO = '修复SSE输出收尾标志未正常输出的BUG'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -861,6 +861,7 @@ def chat_completions():
                 elif data == 'data: [DONE]\n\n':
                     # 接收到结束信号，退出循环
                     logger.debug(f"会话结束-外层")
+                    yield data
                     break
                 else:
                     yield data
