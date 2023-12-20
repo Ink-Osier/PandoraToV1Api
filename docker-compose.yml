@@ -22,3 +22,10 @@ services:
       - ./images:/app/images
       - ./gpts.json:/app/gpts.json
     
+  redis:
+  image: "redis:alpine"
+  command: redis-server --appendonly yes
+  ports:
+    - "46379:6379"
+  volumes:
+    - ./redis-data:/data
