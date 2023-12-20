@@ -141,6 +141,106 @@
 }
 ```
 
+## 文件识别接口使用说明
+
+调用方式同官方 `gpt-4-vision-preview` API 
+
+接口URI：`/v1/chat/completions`
+
+请求方式：`POST`
+
+请求体格式示例（以 url 形式传入文件）：
+
+```json
+{
+    "messages": [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "这个pdf里写了什么，用中文回复"
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "https://bitcoin.org/bitcoin.pdf"
+                    }
+                }
+            ]
+        }
+    ],
+    "stream": false,
+    "model": "gpt-4",
+    "temperature": 0.5,
+    "presence_penalty": 0,
+    "frequency_penalty": 0,
+    "top_p": 1
+}
+```
+
+请求体示例（以 Base64 形式传入文件）：
+```json
+{
+    "messages": [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "这张图里画了什么"
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "data:<mime>;base64,<文件的Base64>"
+                    }
+                }
+            ]
+        }
+    ],
+    "stream": false,
+    "model": "gpt-4-s",
+    "temperature": 0.5,
+    "presence_penalty": 0,
+    "frequency_penalty": 0,
+    "top_p": 1
+}
+```
+
+`MIME` 支持列表，包括但不限于（如果非列表中的类型会直接转成纯文本txt执行上传操作）：
+
+```
+"image/jpeg", "image/webp", "image/png", "image/gif","text/x-php", "application/msword", "text/x-c", "text/html",  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/json", "text/javascript", "application/pdf", "text/x-java", "text/x-tex", "text/x-typescript", "text/x-sh", "text/x-csharp", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "text/x-c++", "application/x-latext", "text/markdown", "text/plain", "text/x-ruby", "text/x-script.python"
+```
+
+响应体格式示例：
+
+```json
+{
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "content": "\n```\nopen_url(\"file-xxxxxxx\")\n```\n这个PDF文件是关于比特币的原始论文，名为《比特币：一种点对点的电子现金系统》，作者是中本聪。这篇论文介绍了一种全新的数字货币系统，它不依赖于任何中心化的金融机构。比特币通过一种去中心化的网络和一种称为区块链的技术来维持交易的安全和完整性。这个系统使用数字签名来确认交易，并通过一种被称为工作量证明的机制来防止双重支付。整个系统旨在创建一个安全、去中心化、对用户友好的数字货币。",
+                "role": "assistant"
+            }
+        }
+    ],
+    "created": 1703063445,
+    "id": "chatcmpl-xxxxxxxx",
+    "model": "gpt-4",
+    "object": "chat.completion",
+    "system_fingerprint": null,
+    "usage": {
+        "completion_tokens": 0,
+        "prompt_tokens": 0,
+        "total_tokens": 0
+    }
+}
+```
+
 ## 示例
 
 以ChatGPT-Next-Web项目的docker-compose部署为例，这里提供一个简单的部署配置文件示例：
