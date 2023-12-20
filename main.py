@@ -149,13 +149,14 @@ UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
 KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
 # 添加环境变量配置
 API_PREFIX = os.getenv('API_PREFIX', '')
+BOT_MODE = os.getenv('BOT_MODE', 'false').lower() == 'true'
 
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 # VERSION = 'test'
-UPDATE_INFO = '支持 GPT-4 文件上传'
+UPDATE_INFO = '支持 BOT 模式'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -168,6 +169,9 @@ with app.app_context():
 
     logger.info(f"LOG_LEVEL: {LOG_LEVEL}")
     logger.info(f"NEED_LOG_TO_FILE: {NEED_LOG_TO_FILE}")
+
+    logger.info(f"BOT_MODE: {BOT_MODE}")
+
 
 
     if not BASE_URL:
@@ -681,7 +685,10 @@ def replace_complete_citation(text, citations):
             logger.debug(f"citation: {citation}")
             if cited_message_idx == int(citation_number):
                 url = citation.get("metadata", {}).get("url", "")
-                return f"[[{citation_number}]({url})]"
+                if BOT_MODE == False:
+                    return f"[[{citation_number}]({url})]"
+                else:
+                    return ""
         return match.group(0)  # 如果没有找到对应的引用，返回原文本
 
     # 使用 finditer 找到第一个匹配项
@@ -806,7 +813,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                         logger.debug(f"下载图片成功")
                                         image_data = image_download_response.content
                                         today_image_url = save_image(image_data)  # 保存图片，并获取文件名
-                                        new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
+                                        if BOT_MODE == False:
+                                            new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
                                     else:
                                         logger.error(f"下载图片失败: {image_download_response.text}")
                                     if last_content_type == "code":
@@ -1252,8 +1260,8 @@ def images_generations():
                         # print(f"data_json: {data_json}")
                         message = data_json.get("message", {})
 
-                        if message == {} or message == None:
-                            logger.debug(f"message 为空: data_json: {data_json}")
+                        if message == None:
+                            logger.error(f"message 为空: data_json: {data_json}")
 
                         message_status = message.get("status")
                         content = message.get("content", {})

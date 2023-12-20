@@ -40,6 +40,8 @@
 
 - [x] 支持 gpt-4-vision
 
+- [x] 支持 Bot模式（QQ、微信机器人等建议开启）
+
 - [ ] 支持 指定进程、线程数
 
 - [ ] 优化 偶现的【0†source】引用bug
@@ -280,6 +282,16 @@ services:
 ### GPTS
 
 ![api-5](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/299df56a-d245-4920-8892-94e1a9cc644a)
+
+### Bot 模式
+
+#### 开启 Bot 模式
+
+![image](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/9c5fd974-58f2-4b96-839d-aef10f7a1cfc)
+
+#### 关闭 Bot 模式
+
+![image](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/c1d3457f-b912-4572-b4e0-1118b48102d8)
 
 ## Star 历史
 
