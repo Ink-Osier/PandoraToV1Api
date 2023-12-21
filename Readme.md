@@ -44,7 +44,7 @@
 
 - [x] 支持 gpt-4-vision
 
-- [x] 支持 Bot模式（QQ、微信机器人等建议开启）
+- [x] 支持 Bot模式（QQ、微信机器人等建议开启，网页应用请不要开启）
 
 - [ ] 支持 指定进程、线程数
 
@@ -81,7 +81,7 @@
 
 ## 环境变量说明：
 
-- UPLOAD_BASE_URL：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的 Uploader  容器地址，如：http://1.2.3.4:50011
+- UPLOAD_BASE_URL：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：http://1.2.3.4:50011
 
 - KEY_FOR_GPTS_INFO：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
 
