@@ -62,6 +62,8 @@
 > 3. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到Pandora-Next的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
 >
 > 4. 本项目并不能绕过 OpenAI 和 PandoraNext 官方的限制，只提供便利，不提供绕过。
+>
+> 5. 提问的艺术：当出现项目不能正常运行时，请携带 `DEBUG` 级别的日志在 `Issue` 或者社区群内提问，否则将开启算命模式~
 
 ## 支持的模型
 
@@ -85,7 +87,7 @@
 
 - `PROXY_API_PREFIX`: PandoraNext Proxy 模式下的 API 前缀
 
-- `UPLOAD_BASE_URL`：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：http://1.2.3.4:50011
+- `UPLOAD_BASE_URL`：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：`http://1.2.3.4:50011`
 
 - `KEY_FOR_GPTS_INFO`：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
 
