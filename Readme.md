@@ -81,13 +81,27 @@
 
 ## 环境变量说明：
 
-- UPLOAD_BASE_URL：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：http://1.2.3.4:50011
+- `BASE_URL`：Pandora-Next 的部署地址，如：https://pandoranext.com，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
 
-- KEY_FOR_GPTS_INFO：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
+- PROXY_API_PREFIX: PandoraNext Proxy 模式下的 API 前缀
+
+- `UPLOAD_BASE_URL`：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：http://1.2.3.4:50011
+
+- `KEY_FOR_GPTS_INFO`：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
 
 ```json
 {}
 ```
+
+- `GPT_4_S_New_Name`、`GPT_4_MOBILE_NEW_NAME`、`GPT_3_5_NEW_NAME`: 用于设置 gpt-4-s、gpt-4-mobile、gpt-3.5-turbo 的模型名称与别名，如果不需要修改，可以保持不变。如果需要修改，每个模型均支持设置多个别名，多个别名之间以英文逗号隔开，例如：`gpt-4-s` 的别名可以设置为 `gpt-4-s,dall-e-3`，这样在调用的时候就可以使用 `gpt-4-s` 或者 `dall-e-3` 来调用该模型。
+
+- `API_PREFIX`: 用于设置本项目 `/v1/xxx` 接口的前缀，如果留空则与官方api调用接口一致。设置示例：`666`
+
+- `LOG_LEVEL`: 用于设置日志等级，可选值为：`DEBUG`、`INFO`、`WARNING`、`ERROR`，默认为 `DEBUG`
+
+- `NEED_LOG_TO_FILE`: 用于设置是否需要将日志输出到文件，可选值为：`true`、`false`，默认为 `true`，日志文件路径为：`./log/access.log`，默认每天会自动分割日志文件。
+
+- `BOT_MODE`: 用于设置是否开启 Bot 模式，可选值为：`true`、`false`，默认为 `false`，开启 Bot 模式后，将不会输出联网插件的引用以及绘图插件的markdown格式的图片，仅建议在 QQ、微信机器人等 Bot 项目中开启，网页应用请不要开启。
 
 ## GPTS配置说明
 
