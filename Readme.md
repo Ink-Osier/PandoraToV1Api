@@ -14,6 +14,8 @@
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
+如果有什么在项目的使用过程中的疑惑或需求，欢迎提 `Issue`，或者加入 Community Telegram Channel: [Inker 的魔法世界](https://t.me/InkerWorld) 来和大家一起交流一下~
+
 ## 更新日志
 
 见 `Release` 页面。
