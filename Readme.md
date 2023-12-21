@@ -1,8 +1,8 @@
 ## 项目简介
 
-> [!CAUTION]
+> [!WARNING]
 >
-> 由于 OpenAI 风控等级提升，本项目所强依赖的 PandoraNext 项目暂时无法使用，因此本项目也暂时无法使用，大家静候 Pandora 的升级吧~
+> OpenAI 风控回落，PandoraNext 恢复正常使用，本项目也恢复正常使用，但是请自行考虑使用风险。
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
