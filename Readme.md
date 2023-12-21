@@ -81,9 +81,9 @@
 
 ## 环境变量说明：
 
-- `BASE_URL`：Pandora-Next 的部署地址，如：https://pandoranext.com，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
+- `BASE_URL`：Pandora-Next 的部署地址，如：`https://pandoranext.com`，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
 
-- PROXY_API_PREFIX: PandoraNext Proxy 模式下的 API 前缀
+- `PROXY_API_PREFIX`: PandoraNext Proxy 模式下的 API 前缀
 
 - `UPLOAD_BASE_URL`：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：http://1.2.3.4:50011
 
