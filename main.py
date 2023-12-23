@@ -24,11 +24,35 @@ from io import BytesIO
 from urllib.parse import urlparse, urlunparse
 import base64
 
+# 读取配置文件
+def load_config(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return json.load(file)
 
-NEED_LOG_TO_FILE = os.getenv('NEED_LOG_TO_FILE', 'true').lower() == 'true'
+CONFIG = load_config('./data/config.json')
 
-# 获取环境变量中的日志级别，如果没有设置，则默认为DEBUG
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG').upper()
+LOG_LEVEL = CONFIG.get('log_level', 'DEBUG').upper()
+NEED_LOG_TO_FILE = CONFIG.get('need_log_to_file', 'true').lower() == 'true'
+
+# 使用 get 方法获取配置项，同时提供默认值
+BASE_URL = CONFIG.get('pandora_base_url', '')
+PROXY_API_PREFIX = CONFIG.get('pandora_api_prefix', '')
+if PROXY_API_PREFIX != '':
+    PROXY_API_PREFIX = "/" + PROXY_API_PREFIX
+UPLOAD_BASE_URL = CONFIG.get('backend_container_url', '')
+KEY_FOR_GPTS_INFO = CONFIG.get('key_for_gpts_info', '')
+API_PREFIX = CONFIG.get('backend_container_api_prefix', '')
+GPT_4_S_New_Names = CONFIG.get('gpt_4_s_new_name', 'gpt-4-s').split(',')
+GPT_4_MOBILE_NEW_NAMES = CONFIG.get('gpt_4_mobile_new_name', 'gpt-4-mobile').split(',')
+GPT_3_5_NEW_NAMES = CONFIG.get('gpt_3_5_new_name', 'gpt-3.5-turbo').split(',')
+
+BOT_MODE = CONFIG.get('bot_mode', {})
+BOT_MODE_ENABLED = BOT_MODE.get('enabled', 'false').lower() == 'true'
+BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT = BOT_MODE.get('enabled_markdown_image_output', 'false').lower() == 'true'
+BOT_MODE_ENABLED_BING_REFERENCE_OUTPUT = BOT_MODE.get('enabled_bing_reference_output', 'false').lower() == 'true'
+BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT = BOT_MODE.get('enabled_plugin_output', 'false').lower() == 'true'
+
+NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_after_response', 'true').lower() == 'true'
 
 # 设置日志级别
 log_level_dict = {
@@ -83,7 +107,7 @@ def load_gpts_config(file_path):
 
 # 根据 ID 发送请求并获取配置信息
 def fetch_gizmo_info(base_url, proxy_api_prefix, model_id):
-    url = f"{base_url}/{proxy_api_prefix}/backend-api/gizmos/{model_id}"
+    url = f"{base_url}{proxy_api_prefix}/backend-api/gizmos/{model_id}"
     headers = {
         "Authorization": f"Bearer {KEY_FOR_GPTS_INFO}"
     }
@@ -142,21 +166,14 @@ def generate_gpts_payload(model, messages):
 app = Flask(__name__)
 CORS(app, resources={r"/images/*": {"origins": "*"}})
 
-# 添加环境变量配置
-BASE_URL = os.getenv('BASE_URL', '')
-PROXY_API_PREFIX = os.getenv('PROXY_API_PREFIX', '')
-UPLOAD_BASE_URL = os.getenv('UPLOAD_BASE_URL', '')
-KEY_FOR_GPTS_INFO = os.getenv('KEY_FOR_GPTS_INFO', '')
-# 添加环境变量配置
-API_PREFIX = os.getenv('API_PREFIX', '')
-BOT_MODE = os.getenv('BOT_MODE', 'false').lower() == 'true'
+
 
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.2.1'
+VERSION = '0.3.0'
 # VERSION = 'test'
-UPDATE_INFO = '支持 BOT 模式'
+UPDATE_INFO = '调整项目目录结构以适配更多的配置项'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -170,44 +187,49 @@ with app.app_context():
     logger.info(f"LOG_LEVEL: {LOG_LEVEL}")
     logger.info(f"NEED_LOG_TO_FILE: {NEED_LOG_TO_FILE}")
 
-    logger.info(f"BOT_MODE: {BOT_MODE}")
+    logger.info(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
+
+    if BOT_MODE_ENABLED:
+        logger.info(f"enabled_markdown_image_output: {BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT}")
+        logger.info(f"enabled_bing_reference_output: {BOT_MODE_ENABLED_BING_REFERENCE_OUTPUT}")
+        logger.info(f"enabled_plugin_output: {BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT}")
+
 
 
 
     if not BASE_URL:
-        raise Exception('BASE_URL is not set')
+        raise Exception('pandora_base_url is not set')
     else:
-        logger.info(f"BASE_URL: {BASE_URL}")
+        logger.info(f"pandora_base_url: {BASE_URL}")
     if not PROXY_API_PREFIX:
-        raise Exception('PROXY_API_PREFIX is not set')
+        logger.warning('pandora_api_prefix is not set')
     else:
-        logger.info(f"PROXY_API_PREFIX: {PROXY_API_PREFIX}")
+        logger.info(f"pandora_api_prefix: {PROXY_API_PREFIX}")
 
     if not UPLOAD_BASE_URL:
-        logger.info("UPLOAD_BASE_URL 未设置，绘图功能将无法正常使用")
+        logger.info("backend_container_url 未设置，绘图功能将无法正常使用")
     else:
-        logger.info(f"UPLOAD_BASE_URL: {UPLOAD_BASE_URL}")
+        logger.info(f"backend_container_url: {UPLOAD_BASE_URL}")
 
     if not KEY_FOR_GPTS_INFO:
-        logger.warning("KEY_FOR_GPTS_INFO 未设置，请将 gpts.json 中仅保留 “{}” 作为内容")
+        logger.warning("key_for_gpts_info 未设置，请将 gpts.json 中仅保留 “{}” 作为内容")
     else:
-        logger.info(f"KEY_FOR_GPTS_INFO: {KEY_FOR_GPTS_INFO}")
+        logger.info(f"key_for_gpts_info: {KEY_FOR_GPTS_INFO}")
 
     if not API_PREFIX:
-        logger.warning("API_PREFIX 未设置，安全性会有所下降")
+        logger.warning("backend_container_api_prefix 未设置，安全性会有所下降")
         logger.info(f'Chat 接口 URI: /v1/chat/completions')
         logger.info(f'绘图接口 URI: /v1/images/generations')
     else:
-        logger.info(f"API_PREFIX: {API_PREFIX}")
+        logger.info(f"backend_container_api_prefix: {API_PREFIX}")
         logger.info(f'Chat 接口 URI: /{API_PREFIX}/v1/chat/completions')
         logger.info(f'绘图接口 URI: /{API_PREFIX}/v1/images/generations')
+
+    logger.info(f"need_delete_conversation_after_response: {NEED_DELETE_CONVERSATION_AFTER_RESPONSE}")
     
     logger.info(f"==========================================")
 
-    # 从环境变量中读取模型名称，支持用逗号分隔的多个名称
-    GPT_4_S_New_Names = os.getenv('GPT_4_S_New_Name', 'gpt-4-s').split(',')
-    GPT_4_MOBILE_NEW_NAMES = os.getenv('GPT_4_MOBILE_NEW_NAME', 'gpt-4-mobile').split(',')
-    GPT_3_5_NEW_NAMES = os.getenv('GPT_3_5_NEW_NAME', 'gpt-3.5-turbo').split(',')
+    
 
     # 更新 gpts_configurations 列表，支持多个映射
     gpts_configurations = []
@@ -231,7 +253,7 @@ with app.app_context():
     logger.info(f"GPTS 配置信息")
 
     # 加载配置并添加到全局列表
-    gpts_data = load_gpts_config("./gpts.json")
+    gpts_data = load_gpts_config("./data/gpts.json")
     add_config_to_global_list(BASE_URL, PROXY_API_PREFIX, gpts_data)
     # print("当前可用GPTS：" + get_accessible_model_list())
     # 输出当前可用 GPTS name
@@ -252,7 +274,7 @@ with app.app_context():
 
 # 定义获取 token 的函数
 def get_token():
-    url = f"{BASE_URL}/{PROXY_API_PREFIX}/api/arkose/token"
+    url = f"{BASE_URL}{PROXY_API_PREFIX}/api/arkose/token"
     payload = {'type': 'gpt-4'}
     response = requests.post(url, data=payload)
     if response.status_code == 200:
@@ -314,7 +336,7 @@ def upload_file(file_content, mime_type, api_key):
         logger.debug(f"非已知文件类型，MINE置空")
 
     # 第1步：调用/backend-api/files接口获取上传URL
-    upload_api_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files"
+    upload_api_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files"
     upload_request_payload = {
         "file_name": file_name,
         "file_size": file_size,
@@ -350,7 +372,7 @@ def upload_file(file_content, mime_type, api_key):
         raise Exception("Failed to upload file")
 
     # 第3步：检测上传是否成功并检查响应
-    check_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files/{file_id}/uploaded"
+    check_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{file_id}/uploaded"
     check_response = requests.post(check_url, json={}, headers=headers)
     logger.debug(f"check_response: {check_response.text}")
     if check_response.status_code != 200:
@@ -428,7 +450,7 @@ my_files_types = [
 
 # 定义发送请求的函数
 def send_text_prompt_and_get_response(messages, api_key, stream, model):
-    url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/conversation"
+    url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/conversation"
     headers = {
         "Authorization": f"Bearer {api_key}"
     }
@@ -603,8 +625,11 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
 
 def delete_conversation(conversation_id, api_key):
     logger.info(f"准备删除的会话id： {conversation_id}")
-    if conversation_id:
-        patch_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/conversation/{conversation_id}"
+    if not NEED_DELETE_CONVERSATION_AFTER_RESPONSE:
+        logger.info(f"自动删除会话功能已禁用")
+        return
+    if conversation_id and NEED_DELETE_CONVERSATION_AFTER_RESPONSE:
+        patch_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/conversation/{conversation_id}"
         patch_headers = {
             "Authorization": f"Bearer {api_key}",
         }
@@ -685,7 +710,7 @@ def replace_complete_citation(text, citations):
             logger.debug(f"citation: {citation}")
             if cited_message_idx == int(citation_number):
                 url = citation.get("metadata", {}).get("url", "")
-                if BOT_MODE == False:
+                if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_BING_REFERENCE_OUTPUT == True)):
                     return f"[[{citation_number}]({url})]"
                 else:
                     return ""
@@ -761,8 +786,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                     content = message.get("content", {})
                     role = message.get("author", {}).get("role")
                     content_type = content.get("content_type")
-                    # print(f"content_type: {content_type}")
-                    # print(f"last_content_type: {last_content_type}")
+                    print(f"content_type: {content_type}")
+                    print(f"last_content_type: {last_content_type}")
 
                     metadata = {}
                     citations = []
@@ -795,7 +820,7 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                 is_img_message = True
                                 asset_pointer = part.get('asset_pointer').replace('file-service://', '')
                                 logger.debug(f"asset_pointer: {asset_pointer}")
-                                image_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
+                                image_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
 
                                 headers = {
                                     "Authorization": f"Bearer {api_key}"
@@ -813,12 +838,16 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                         logger.debug(f"下载图片成功")
                                         image_data = image_download_response.content
                                         today_image_url = save_image(image_data)  # 保存图片，并获取文件名
-                                        if BOT_MODE == False:
+                                        if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
                                             new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
                                     else:
                                         logger.error(f"下载图片失败: {image_download_response.text}")
                                     if last_content_type == "code":
-                                        new_text = "\n```\n" + new_text
+                                        if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                            new_text = content.get("text", "")
+                                        else:
+                                            new_text = "\n```\n" + new_text
+                                        
                                     logger.debug(f"new_text: {new_text}")
                                     is_img_message = True
                                 else:
@@ -831,6 +860,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                         # print(f"data_json: {data_json}")
                         if content_type == "multimodal_text" and last_content_type == "code":
                             new_text = "\n```\n" + content.get("text", "")
+                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                new_text = content.get("text", "")
                         elif role == "tool" and name == "dalle.text2im":
                             logger.debug(f"无视消息: {content.get('text', '')}")
                             continue
@@ -842,6 +873,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             # print(f"last_full_code: {last_full_code}")
                             # print(f"new_text: {new_text}")
                             last_full_code = full_code  # 更新完整代码以备下次比较
+                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                new_text = ""
                             
                         elif last_content_type == "code" and content_type != "code" and content_type != None:
                             full_code = ''.join(content.get("text", ""))
@@ -850,6 +883,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             # print(f"last_full_code: {last_full_code}")
                             # print(f"new_text: {new_text}")
                             last_full_code = ""  # 更新完整代码以备下次比较
+                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                new_text = ""
 
                         elif content_type == "code" and last_content_type == "code" and content_type != None:
                             full_code = ''.join(content.get("text", ""))
@@ -858,6 +893,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             # print(f"last_full_code: {last_full_code}")
                             # print(f"new_text: {new_text}")
                             last_full_code = full_code  # 更新完整代码以备下次比较
+                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                new_text = ""
                             
                         else:
                             # 只获取新的 parts
@@ -906,7 +943,10 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             full_code_result = ''.join(content.get("text", ""))
                             new_text = "`Result:` \n```\n" + full_code_result[len(last_full_code_result):]
                             if last_content_type == "code":
-                                new_text = "\n```\n" + new_text
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
+                                else:
+                                    new_text = "\n```\n" + new_text
                             # print(f"full_code_result: {full_code_result}")
                             # print(f"last_full_code_result: {last_full_code_result}")
                             # print(f"new_text: {new_text}")
@@ -915,15 +955,23 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             # new_text = content.get("text", "") + "\n```"
                             full_code_result = ''.join(content.get("text", ""))
                             new_text = full_code_result[len(last_full_code_result):] + "\n```\n"
+                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
                             if content_type == "code":
-                                new_text =  new_text + "\n```\n"
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
+                                else:
+                                    new_text =  new_text + "\n```\n"
                             # print(f"full_code_result: {full_code_result}")
                             # print(f"last_full_code_result: {last_full_code_result}")
                             # print(f"new_text: {new_text}")
                             last_full_code_result = ""  # 更新完整代码以备下次比较
                         elif last_content_type == "execution_output" and role == "tool" and name == "python" and content_type != None:
                             full_code_result = ''.join(content.get("text", ""))
-                            new_text = full_code_result[len(last_full_code_result):]
+                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                new_text = ""
+                            else:
+                                new_text = full_code_result[len(last_full_code_result):]
                             # print(f"full_code_result: {full_code_result}")
                             # print(f"last_full_code_result: {last_full_code_result}")
                             # print(f"new_text: {new_text}")
@@ -1299,7 +1347,7 @@ def images_generations():
                                     is_img_message = True
                                     asset_pointer = part.get('asset_pointer').replace('file-service://', '')
                                     logger.debug(f"asset_pointer: {asset_pointer}")
-                                    image_url = f"{BASE_URL}/{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
+                                    image_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
 
                                     headers = {
                                         "Authorization": f"Bearer {api_key}"

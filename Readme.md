@@ -83,29 +83,39 @@
 
 仓库内已包含相关文件和目录，拉到本地后修改 docker-compose.yml 文件里的环境变量后运行`docker-compose up -d`即可。
 
-## 环境变量说明：
+## config.json 变量说明：
 
-- `BASE_URL`：Pandora-Next 的部署地址，如：`https://pandoranext.com`，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
+- `log_level`: 用于设置日志等级，可选值为：`DEBUG`、`INFO`、`WARNING`、`ERROR`，默认为 `DEBUG`
 
-- `PROXY_API_PREFIX`: PandoraNext Proxy 模式下的 API 前缀
+- `need_log_to_file`: 用于设置是否需要将日志输出到文件，可选值为：`true`、`false`，默认为 `true`，日志文件路径为：`./log/access.log`，默认每天会自动分割日志文件。
 
-- `UPLOAD_BASE_URL`：用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：`http://1.2.3.4:50011`
+- `pandora_base_url`: Pandora-Next 的部署地址，如：`https://pandoranext.com`，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
 
-- `KEY_FOR_GPTS_INFO`：仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
+- `pandora_api_prefix`: PandoraNext Proxy 模式下的 API 前缀
+
+- `backend_container_url`: 用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：`http://1.2.3.4:50011`，同原环境变量中的 `UPLOAD_BASE_URL`
+
+- `backend_container_api_prefix`: 用于设置本项目 `/v1/xxx` 接口的前缀，如果留空则与官方api调用接口一致。设置示例：`666 `
+
+- `key_for_gpts_info`: 仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
 
 ```json
 {}
 ```
 
-- `GPT_4_S_New_Name`、`GPT_4_MOBILE_NEW_NAME`、`GPT_3_5_NEW_NAME`: 用于设置 gpt-4-s、gpt-4-mobile、gpt-3.5-turbo 的模型名称与别名，如果不需要修改，可以保持不变。如果需要修改，每个模型均支持设置多个别名，多个别名之间以英文逗号隔开，例如：`gpt-4-s` 的别名可以设置为 `gpt-4-s,dall-e-3`，这样在调用的时候就可以使用 `gpt-4-s` 或者 `dall-e-3` 来调用该模型。
+- `gpt_4_s_new_name`、`gpt_4_mobile_new_name`、`gpt_3_5_new_name`: 用于设置 gpt-4-s、gpt-4-mobile、gpt-3.5-turbo 的模型名称与别名，如果不需要修改，可以保持不变。如果需要修改，每个模型均支持设置多个别名，多个别名之间以英文逗号隔开，例如：`gpt-4-s` 的别名可以设置为 `gpt-4-s,dall-e-3`，这样在调用的时候就可以使用 `gpt-4-s` 或者 `dall-e-3` 来调用该模型。
 
-- `API_PREFIX`: 用于设置本项目 `/v1/xxx` 接口的前缀，如果留空则与官方api调用接口一致。设置示例：`666`
+- `need_delete_conversation_after_response`: 用于设置是否在响应后删除对话，可选值为：`true`、`false`，默认为 `false`，如果设置为 `true`，则会在响应后删除对话，这样可以保证在页面上不会留下通过本项目调用的对话记录.
 
-- `LOG_LEVEL`: 用于设置日志等级，可选值为：`DEBUG`、`INFO`、`WARNING`、`ERROR`，默认为 `DEBUG`
+- `bot_mode`
 
-- `NEED_LOG_TO_FILE`: 用于设置是否需要将日志输出到文件，可选值为：`true`、`false`，默认为 `true`，日志文件路径为：`./log/access.log`，默认每天会自动分割日志文件。
+    - `enabled`: 用于设置是否开启 Bot 模式，可选值为：`true`、`false`，默认为 `false`，开启 Bot 模式后，将可以自定义联网插件的引引用、绘图插件的markdown格式的图片以及插件执行过程的输出，仅建议在 QQ、微信机器人等 Bot 项目中开启，网页应用请不要开启。
 
-- `BOT_MODE`: 用于设置是否开启 Bot 模式，可选值为：`true`、`false`，默认为 `false`，开启 Bot 模式后，将不会输出联网插件的引用以及绘图插件的markdown格式的图片，仅建议在 QQ、微信机器人等 Bot 项目中开启，网页应用请不要开启。
+    - `enabled_markdown_image_output`: 用于设置是否开启 Bot 模式下绘图插件的markdown格式的图片输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出markdown格式的图片输出，仅在 `bot_mode.enabled` 为 `true` 时生效。
+
+    - `enabled_bing_reference_output`: 用于设置是否开启 Bot 模式下联网插件的引用输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出联网插件的引用，仅在 `bot_mode.enabled` 为 `true` 时生效。
+
+    - `enabled_plugin_output`: 用于设置是否开启 Bot 模式下插件执行过程的输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出插件执行过程的输出，仅在 `bot_mode.enabled` 为 `true` 时生效。
 
 ## GPTS配置说明
 

@@ -1,0 +1,19 @@
+{
+    "log_level": "DEBUG",
+    "need_log_to_file": "true",
+    "pandora_base_url": "",
+    "pandora_api_prefix": "",
+    "backend_container_url": "",
+    "backend_container_api_prefix": "",
+    "key_for_gpts_info": "",
+    "gpt_4_s_new_name": "gpt-4-s",
+    "gpt_4_mobile_new_name": "gpt-4-mobile,dall-e-3",
+    "gpt_3_5_new_name": "gpt-3.5-turbo",
+    "need_delete_conversation_after_response": "true",
+    "bot_mode": {
+        "enabled": "false",
+        "enabled_markdown_image_output": "false",
+        "enabled_bing_reference_output": "false",
+        "enabled_plugin_output": "false"
+    }
+}
