@@ -71,6 +71,8 @@ logger.setLevel(log_level_dict.get(LOG_LEVEL, logging.DEBUG))
 # 如果环境变量指示需要输出到文件
 if NEED_LOG_TO_FILE:
     log_filename = './log/access.log'
+    if not os.path.exists('./log'):
+        os.makedirs('./log')
     file_handler = TimedRotatingFileHandler(log_filename, when="midnight", interval=1, backupCount=30)
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
