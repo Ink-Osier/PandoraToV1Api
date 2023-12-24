@@ -13,6 +13,7 @@
     "bot_mode": {
         "enabled": "false",
         "enabled_markdown_image_output": "false",
+        "enabled_plain_image_url_output": "false",
         "enabled_bing_reference_output": "false",
         "enabled_plugin_output": "false"
     }

@@ -52,6 +52,8 @@ BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT = BOT_MODE.get('enabled_markdown_image_ou
 BOT_MODE_ENABLED_BING_REFERENCE_OUTPUT = BOT_MODE.get('enabled_bing_reference_output', 'false').lower() == 'true'
 BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT = BOT_MODE.get('enabled_plugin_output', 'false').lower() == 'true'
 
+BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT = BOT_MODE.get('enabled_plain_image_url_output', 'false').lower() == 'true'
+
 NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_after_response', 'true').lower() == 'true'
 
 # 设置日志级别
@@ -171,9 +173,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 # VERSION = 'test'
-UPDATE_INFO = '修复bot模式图片输出的bug'
+UPDATE_INFO = '支持bot模式非markdown图片输出'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -191,6 +193,7 @@ with app.app_context():
 
     if BOT_MODE_ENABLED:
         logger.info(f"enabled_markdown_image_output: {BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT}")
+        logger.info(f"enabled_plain_image_url_output: {BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT}")
         logger.info(f"enabled_bing_reference_output: {BOT_MODE_ENABLED_BING_REFERENCE_OUTPUT}")
         logger.info(f"enabled_plugin_output: {BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT}")
 
@@ -840,6 +843,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                         today_image_url = save_image(image_data)  # 保存图片，并获取文件名
                                         if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
                                             new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
+                                        if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
+                                            new_text = f"\n图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
                                     else:
                                         logger.error(f"下载图片失败: {image_download_response.text}")
                                     if last_content_type == "code":
