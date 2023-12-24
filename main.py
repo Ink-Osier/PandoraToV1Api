@@ -844,7 +844,10 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                         if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
                                             new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
                                         if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
-                                            new_text = f"\n图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                            if all_new_text != "":
+                                                new_text = f"\n图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                            else:
+                                                new_text = f"图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
                                     else:
                                         logger.error(f"下载图片失败: {image_download_response.text}")
                                     if last_content_type == "code":
