@@ -113,7 +113,7 @@
 
     - `enabled_markdown_image_output`: 用于设置是否开启 Bot 模式下绘图插件的markdown格式的图片输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出markdown格式的图片输出，仅在 `bot_mode.enabled` 为 `true` 时生效。
 
-    - `enabled_plain_image_url_output`: 用于设置是否开启 Bot 模式下绘图插件的纯图片链接（非markdown格式）输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出纯图片链接输出，仅在 `bot_mode.enabled` 为 `true` 时生效。
+    - `enabled_plain_image_url_output`: 用于设置是否开启 Bot 模式下绘图插件的纯图片链接（非markdown格式）输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出纯图片链接输出，仅在 `bot_mode.enabled` 为 `true` 时生效。注意：与`enabled_markdown_image_output` 同时开启时，只会输出非 markdown 格式的图片。
 
     - `enabled_bing_reference_output`: 用于设置是否开启 Bot 模式下联网插件的引用输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出联网插件的引用，仅在 `bot_mode.enabled` 为 `true` 时生效。
 
