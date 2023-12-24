@@ -171,9 +171,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 # VERSION = 'test'
-UPDATE_INFO = '调整项目目录结构以适配更多的配置项'
+UPDATE_INFO = '修复bot模式图片输出的bug'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -844,7 +844,7 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                         logger.error(f"下载图片失败: {image_download_response.text}")
                                     if last_content_type == "code":
                                         if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                            new_text = content.get("text", "")
+                                            new_text = new_text
                                         else:
                                             new_text = "\n```\n" + new_text
                                         
