@@ -173,9 +173,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.3'
+VERSION = '0.3.4'
 # VERSION = 'test'
-UPDATE_INFO = '支持基于tiktoken的token字符统计'
+UPDATE_INFO = '优化GPTS的Action功能输出'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -984,6 +984,16 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             # print(f"last_full_code_result: {last_full_code_result}")
                             # print(f"new_text: {new_text}")
                             last_full_code_result = full_code_result
+
+                        # 其余Action执行输出特殊处理
+                        if role == "tool" and name != "python" and name != "dalle.text2im" and last_content_type != "execution_output" and content_type != None:                     
+                            new_text = ""
+                            if last_content_type == "code":
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
+                                else:
+                                    new_text = "\n```\n" + new_text
+
 
                     # print(f"收到数据: {data_json}")
                     # print(f"收到的完整文本: {full_text}")
