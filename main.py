@@ -173,9 +173,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.4'
+VERSION = '0.3.5'
 # VERSION = 'test'
-UPDATE_INFO = '优化GPTS的Action功能输出'
+UPDATE_INFO = '优化gpt-4-vision的token统计'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -1166,8 +1166,14 @@ def count_total_input_words(messages, model):
     total_words = 0
     for message in messages:
         content = message.get("content", "")
-        # logger.info(f"message: {content}")
-        total_words += count_tokens(content, model)
+        if isinstance(content, list):  # 判断content是否为列表
+            for item in content:
+                if item.get("type") == "text":  # 仅处理类型为"text"的项
+                    text_content = item.get("text", "")
+                    total_words += count_tokens(text_content, model)
+        elif isinstance(content, str):  # 处理字符串类型的content
+            total_words += count_tokens(content, model)
+        # 不处理其他类型的content
 
     return total_words
 
