@@ -173,9 +173,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.5'
+VERSION = '0.3.6'
 # VERSION = 'test'
-UPDATE_INFO = '优化gpt-4-vision的token统计'
+UPDATE_INFO = '增加特殊情况下的错误日志输出'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -1071,6 +1071,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
         try:
             buffer_json = json.loads(buffer)
             error_message = buffer_json.get("detail", {}).get("message", "未知错误")
+            if error_message == "未知错误":
+                logger.error(f"未识别到具体的错误消息，响应内容: {buffer_json}")
             error_data = {
                         "id": chat_message_id,
                         "object": "chat.completion.chunk",
