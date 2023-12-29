@@ -173,9 +173,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.7'
+VERSION = '0.3.8'
 # VERSION = 'test'
-UPDATE_INFO = '支持自定义启动服务的进程、线程数'
+UPDATE_INFO = '完善SSE输出的格式，以适配更多的客户端'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -747,6 +747,8 @@ def replace_complete_citation(text, citations):
 def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_key, chat_message_id, model):
     all_new_text = ""
 
+    first_output = True
+
     # 当前时间戳
     timestamp = int(time.time())
 
@@ -1005,6 +1007,27 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                         last_content_type = content_type if role != "user" else last_content_type
 
                     model_slug = message.get("metadata", {}).get("model_slug") or model
+
+
+                    if first_output:
+                        new_data = {
+                            "id": chat_message_id,
+                            "object": "chat.completion.chunk",
+                            "created": timestamp,
+                            "model": model_slug,
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {"role":"assistant"},
+                                    "finish_reason": None
+                                }
+                            ]
+                        }
+                        q_data = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
+                        data_queue.put(q_data)
+                        first_output = False
+
+
                     new_data = {
                         "id": chat_message_id,
                         "object": "chat.completion.chunk",
@@ -1242,6 +1265,24 @@ def chat_completions():
                     # print(f"收到会话id: {conversation_id}")
                 elif data == 'data: [DONE]\n\n':
                     # 接收到结束信号，退出循环
+                    timestamp = int(time.time())
+
+                    new_data = {
+                        "id": chat_message_id,
+                        "object": "chat.completion.chunk",
+                        "created": timestamp,
+                        "model": model,
+                        "choices": [
+                            {
+                                "delta":{},
+                                "index":0,
+                                "finish_reason":"stop"
+                            }
+                        ]
+                    }
+                    q_data = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
+                    yield q_data
+
                     logger.debug(f"会话结束-外层")
                     yield data
                     break
