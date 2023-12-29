@@ -12,6 +12,7 @@
     "gpt_4_mobile_new_name": "gpt-4-mobile,dall-e-3",
     "gpt_3_5_new_name": "gpt-3.5-turbo",
     "need_delete_conversation_after_response": "true",
+    "use_oaiusercontent_url": "false",
     "bot_mode": {
         "enabled": "false",
         "enabled_markdown_image_output": "false",

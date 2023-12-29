@@ -56,6 +56,8 @@ BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT = BOT_MODE.get('enabled_plain_image_url_
 
 NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_after_response', 'true').lower() == 'true'
 
+USE_OAIUSERCONTENT_URL = CONFIG.get('use_oaiusercontent_url', 'false').lower() == 'true'
+
 # 设置日志级别
 log_level_dict = {
     'DEBUG': logging.DEBUG,
@@ -173,9 +175,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.8'
+VERSION = '0.3.9'
 # VERSION = 'test'
-UPDATE_INFO = '完善SSE输出的格式，以适配更多的客户端'
+UPDATE_INFO = '支持图片不落地，并支持base64绘图输出'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -210,7 +212,11 @@ with app.app_context():
         logger.info(f"pandora_api_prefix: {PROXY_API_PREFIX}")
 
     if not UPLOAD_BASE_URL:
-        logger.info("backend_container_url 未设置，绘图功能将无法正常使用")
+        if USE_OAIUSERCONTENT_URL:
+            logger.info("backend_container_url 未设置，将使用 oaiusercontent.com 作为图片域名")
+        else:
+            logger.warning("backend_container_url 未设置，图片生成功能将无法正常使用")
+            
     else:
         logger.info(f"backend_container_url: {UPLOAD_BASE_URL}")
 
@@ -230,6 +236,8 @@ with app.app_context():
 
     logger.info(f"need_delete_conversation_after_response: {NEED_DELETE_CONVERSATION_AFTER_RESPONSE}")
     
+    logger.info(f"use_oaiusercontent_url: {USE_OAIUSERCONTENT_URL}")
+
     logger.info(f"==========================================")
 
     
@@ -835,23 +843,32 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                 if image_response.status_code == 200:
                                     download_url = image_response.json().get('download_url')
                                     logger.debug(f"download_url: {download_url}")
-                                    # 从URL下载图片
-                                    # image_data = requests.get(download_url).content
-                                    image_download_response = requests.get(download_url)
-                                    # print(f"image_download_response: {image_download_response.text}")
-                                    if image_download_response.status_code == 200:
-                                        logger.debug(f"下载图片成功")
-                                        image_data = image_download_response.content
-                                        today_image_url = save_image(image_data)  # 保存图片，并获取文件名
+                                    if USE_OAIUSERCONTENT_URL == True:
                                         if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
-                                            new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
+                                            new_text = f"\n![image]({download_url})\n[下载链接]({download_url})\n"
                                         if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
                                             if all_new_text != "":
-                                                new_text = f"\n图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                                new_text = f"\n图片链接：{download_url}\n"
                                             else:
-                                                new_text = f"图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                                new_text = f"图片链接：{download_url}\n"
                                     else:
-                                        logger.error(f"下载图片失败: {image_download_response.text}")
+                                        # 从URL下载图片
+                                        # image_data = requests.get(download_url).content
+                                        image_download_response = requests.get(download_url)
+                                        # print(f"image_download_response: {image_download_response.text}")
+                                        if image_download_response.status_code == 200:
+                                            logger.debug(f"下载图片成功")
+                                            image_data = image_download_response.content
+                                            today_image_url = save_image(image_data)  # 保存图片，并获取文件名
+                                            if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
+                                                new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
+                                            if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
+                                                if all_new_text != "":
+                                                    new_text = f"\n图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                                else:
+                                                    new_text = f"图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                        else:
+                                            logger.error(f"下载图片失败: {image_download_response.text}")
                                     if last_content_type == "code":
                                         if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
                                             new_text = new_text
@@ -1345,6 +1362,7 @@ def chat_completions():
 def images_generations():
     logger.info(f"New Img Request")
     data = request.json
+    logger.debug(f"data: {data}")
     # messages = data.get('messages')
     model = data.get('model')
     accessible_model_list = get_accessible_model_list()
@@ -1352,6 +1370,9 @@ def images_generations():
         return jsonify({"error": "model is not accessible"}), 401
     
     prompt = data.get('prompt', '')
+
+    # 获取请求中的response_format参数，默认为"url"
+    response_format = data.get('response_format', 'url')
 
     # stream = data.get('stream', False)
 
@@ -1464,20 +1485,38 @@ def images_generations():
                                     if image_response.status_code == 200:
                                         download_url = image_response.json().get('download_url')
                                         logger.debug(f"download_url: {download_url}")
-                                        # 从URL下载图片
-                                        # image_data = requests.get(download_url).content
-                                        image_download_response = requests.get(download_url)
-                                        # print(f"image_download_response: {image_download_response.text}")
-                                        if image_download_response.status_code == 200:
-                                            logger.debug(f"下载图片成功")
-                                            image_data = image_download_response.content
-                                            today_image_url = save_image(image_data)  # 保存图片，并获取文件名
-                                            # new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
-                                            image_link = f"{UPLOAD_BASE_URL}/{today_image_url}"
+                                        if USE_OAIUSERCONTENT_URL == True and response_format == "url":
+                                            image_link = f"{download_url}"
                                             image_urls.append(image_link)  # 将图片链接保存到列表中
                                             new_text = ""
                                         else:
-                                            logger.error(f"下载图片失败: {image_download_response.text}")
+                                            if response_format == "url":
+                                                # 从URL下载图片
+                                                # image_data = requests.get(download_url).content
+                                                image_download_response = requests.get(download_url)
+                                                # print(f"image_download_response: {image_download_response.text}")
+                                                if image_download_response.status_code == 200:
+                                                    logger.debug(f"下载图片成功")
+                                                    image_data = image_download_response.content
+                                                    today_image_url = save_image(image_data)  # 保存图片，并获取文件名
+                                                    # new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
+                                                    image_link = f"{UPLOAD_BASE_URL}/{today_image_url}"
+                                                    image_urls.append(image_link)  # 将图片链接保存到列表中
+                                                    new_text = ""
+                                                else:
+                                                    logger.error(f"下载图片失败: {image_download_response.text}")
+                                            else:
+                                                # 使用base64编码图片
+                                                # image_data = requests.get(download_url).content
+                                                image_download_response = requests.get(download_url)
+                                                if image_download_response.status_code == 200:
+                                                    logger.debug(f"下载图片成功")
+                                                    image_data = image_download_response.content
+                                                    image_base64 = base64.b64encode(image_data).decode('utf-8')
+                                                    image_urls.append(image_base64)
+                                                    new_text = ""
+                                                else:
+                                                    logger.error(f"下载图片失败: {image_download_response.text}")
                                         if last_content_type == "code":
                                             new_text = new_text
                                             # new_text = "\n```\n" + new_text
@@ -1688,11 +1727,30 @@ def images_generations():
     for _ in generate():
         pass
     # 构造响应的 JSON 结构
-    response_json = {
-        "created": int(time.time()),  # 使用当前时间戳
-        "reply": all_new_text,  # 使用累积的文本
-        "data": [{"url": url} for url in image_urls]  # 将图片链接列表转换为所需格式
-    }
+    response_json = {}
+    if response_format == "url":
+        response_json = {
+            "created": int(time.time()),  # 使用当前时间戳
+            # "reply": all_new_text,  # 使用累积的文本
+            "data": [
+                {
+                    "revised_prompt": all_new_text,  # 将描述文本加入每个字典
+                    "url": url
+                } for url in image_urls
+            ]  # 将图片链接列表转换为所需格式
+        }
+    else:
+        response_json = {
+            "created": int(time.time()),  # 使用当前时间戳
+            # "reply": all_new_text,  # 使用累积的文本
+            "data": [
+                {
+                    "revised_prompt": all_new_text,  # 将描述文本加入每个字典
+                    "b64_json": base64
+                } for base64 in image_urls
+            ]  # 将图片链接列表转换为所需格式
+        }
+    logger.debug(f"response_json: {response_json}")
 
     # 返回 JSON 响应
     return jsonify(response_json)
