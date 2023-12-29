@@ -331,6 +331,12 @@ services:
 
 ![image](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/c1d3457f-b912-4572-b4e0-1118b48102d8)
 
+## 贡献者们
+
+> 感谢所有让这个项目变得更好的贡献者们！
+
+[![Contributors](https://contrib.rocks/image?repo=pandora-next/deploy)](https://github.com/Ink-Osier/PandoraToV1Api/graphs/contributors)
+
 ## Star 历史
 
 ![Stargazers over time](https://api.star-history.com/svg?repos=Ink-Osier/PandoraToV1Api&type=Date)
