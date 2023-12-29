@@ -111,6 +111,8 @@
 
 - `need_delete_conversation_after_response`: 用于设置是否在响应后删除对话，可选值为：`true`、`false`，默认为 `false`，如果设置为 `true`，则会在响应后删除对话，这样可以保证在页面上不会留下通过本项目调用的对话记录.
 
+- `use_oaiusercontent_url`: 是否使用OpenAI官方图片域名，可选值为：`true`、`false`，默认为 `false`，如果设置为 `true`，则会使用OpenAI的图片域名，否则使用 `backend_container_url` 参数的值作为图片域名。如果设置为 `true`，则 `backend_container_url` 可以不填且图片不会下载到image文件夹中。
+
 - `bot_mode`
 
     - `enabled`: 用于设置是否开启 Bot 模式，可选值为：`true`、`false`，默认为 `false`，开启 Bot 模式后，将可以自定义联网插件的引引用、绘图插件的markdown格式的图片以及插件执行过程的输出，仅建议在 QQ、微信机器人等 Bot 项目中开启，网页应用请不要开启。
