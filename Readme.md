@@ -335,7 +335,7 @@ services:
 
 > 感谢所有让这个项目变得更好的贡献者们！
 
-[![Contributors](https://contrib.rocks/image?repo=pandora-next/deploy)](https://github.com/Ink-Osier/PandoraToV1Api/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=Ink-Osier/PandoraToV1Api)](https://github.com/Ink-Osier/PandoraToV1Api/graphs/contributors)
 
 ## Star 历史
 
