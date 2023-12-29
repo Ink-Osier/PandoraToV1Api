@@ -1,6 +1,8 @@
 {
     "log_level": "DEBUG",
     "need_log_to_file": "true",
+    "process_workers": 2,
+    "process_threads": 2,
     "pandora_base_url": "",
     "pandora_api_prefix": "",
     "backend_container_url": "",

@@ -173,9 +173,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.3.6'
+VERSION = '0.3.7'
 # VERSION = 'test'
-UPDATE_INFO = '增加特殊情况下的错误日志输出'
+UPDATE_INFO = '支持自定义启动服务的进程、线程数'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():

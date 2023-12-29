@@ -9,12 +9,10 @@ COPY . /app
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
-# 设置工作进程数
-ENV PROCESS_WORKERS=1
-# 设置工作线程数
-ENV PROCESS_THREADS=2
 
 RUN chmod +x /app/start.sh
+
+RUN apt update && apt install -y jq
 
 # 设置 pip 源为清华大学镜像
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
