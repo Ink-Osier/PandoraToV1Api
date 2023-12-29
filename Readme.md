@@ -89,6 +89,10 @@
 
 - `need_log_to_file`: 用于设置是否需要将日志输出到文件，可选值为：`true`、`false`，默认为 `true`，日志文件路径为：`./log/access.log`，默认每天会自动分割日志文件。
 
+- `process_workers`: 用于设置进程数，如果不需要设置，可以保持不变，如果需要设置，可以设置为需要设置的值，如果设置为 `1`，则会强制设置为单进程模式。
+
+- `process_threads`: 用于设置线程数，如果不需要设置，可以保持不变，如果需要设置，可以设置为需要设置的值，如果设置为 `1`，则会强制设置为单线程模式。
+
 - `pandora_base_url`: Pandora-Next 的部署地址，如：`https://pandoranext.com`，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
 
 - `pandora_api_prefix`: PandoraNext Proxy 模式下的 API 前缀
