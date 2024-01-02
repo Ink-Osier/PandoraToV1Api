@@ -180,9 +180,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.1'
+VERSION = '0.4.2'
 # VERSION = 'test'
-UPDATE_INFO = '支持自定义Arkose Token获取url列表'
+UPDATE_INFO = '优化未获取到Arkose的时候的异常处理'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -331,6 +331,7 @@ def get_token():
         except requests.RequestException as e:
             logger.error(f"请求异常: {e}")
 
+    raise Exception("获取 arkose token 失败")
     return None
 
 import os
