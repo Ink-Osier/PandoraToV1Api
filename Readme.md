@@ -113,6 +113,10 @@
 
 - `use_oaiusercontent_url`: 是否使用OpenAI官方图片域名，可选值为：`true`、`false`，默认为 `false`，如果设置为 `true`，则会使用OpenAI的图片域名，否则使用 `backend_container_url` 参数的值作为图片域名。如果设置为 `true`，则 `backend_container_url` 可以不填且图片不会下载到image文件夹中。
 
+- `custom_arkose_url`: 是否需要自定义Arkose Token获取地址，可选值为：`true`、`false`，默认为 `false`，如果设置为 `true`，则会使用 `arkose_urls` 参数的值作为Arkose Token获取地址，否则使用默认的PandoraNext Arkose Token获取地址。
+
+- `arkose_urls`: Arkose Token获取地址，如果 `custom_arkose_url` 为 `false`，则该参数无效，如果 `custom_arkose_url` 为 `true`，则该参数必填，且需要填写为可以获取Arkose Token的地址列表，例如：`https://arkose-proxy-1.pandoranext.com/<proxy-prefix>,https://arkose-proxy-2.pandoranext.com/<proxy-prefix>`，支持同时设置多个Arkose Token获取地址，从前往后轮询调用，如果第一个获取失败则自动从第二个获取，以此类推。
+
 - `bot_mode`
 
     - `enabled`: 用于设置是否开启 Bot 模式，可选值为：`true`、`false`，默认为 `false`，开启 Bot 模式后，将可以自定义联网插件的引引用、绘图插件的markdown格式的图片以及插件执行过程的输出，仅建议在 QQ、微信机器人等 Bot 项目中开启，网页应用请不要开启。

@@ -13,6 +13,8 @@
     "gpt_3_5_new_name": "gpt-3.5-turbo",
     "need_delete_conversation_after_response": "true",
     "use_oaiusercontent_url": "false",
+    "custom_arkose_url": "false",
+    "arkose_urls": "",
     "bot_mode": {
         "enabled": "false",
         "enabled_markdown_image_output": "false",

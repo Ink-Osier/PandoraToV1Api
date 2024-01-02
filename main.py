@@ -58,6 +58,11 @@ NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_a
 
 USE_OAIUSERCONTENT_URL = CONFIG.get('use_oaiusercontent_url', 'false').lower() == 'true'
 
+CUSTOM_ARKOSE = CONFIG.get('custom_arkose_url', 'false').lower() == 'true'
+
+ARKOSE_URLS = CONFIG.get('arkose_urls', "")
+
+
 # 设置日志级别
 log_level_dict = {
     'DEBUG': logging.DEBUG,
@@ -175,9 +180,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.0'
+VERSION = '0.4.1'
 # VERSION = 'test'
-UPDATE_INFO = '支持文件生成'
+UPDATE_INFO = '支持自定义Arkose Token获取url列表'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -249,6 +254,11 @@ with app.app_context():
     
     logger.info(f"use_oaiusercontent_url: {USE_OAIUSERCONTENT_URL}")
 
+    logger.info(f"custom_arkose_url: {CUSTOM_ARKOSE}")
+
+    if CUSTOM_ARKOSE:
+        logger.info(f"arkose_urls: {ARKOSE_URLS}")
+
     logger.info(f"==========================================")
 
     
@@ -296,13 +306,32 @@ with app.app_context():
 
 # 定义获取 token 的函数
 def get_token():
-    url = f"{BASE_URL}{PROXY_API_PREFIX}/api/arkose/token"
-    payload = {'type': 'gpt-4'}
-    response = requests.post(url, data=payload)
-    if response.status_code == 200:
-        return response.json().get('token')
-    else:
-        return None
+    # 从环境变量获取 URL 列表，并去除每个 URL 周围的空白字符
+    api_urls = [url.strip() for url in ARKOSE_URLS.split(",")]
+
+    for url in api_urls:
+        if not url:
+            continue
+
+        full_url = f"{url}/api/arkose/token"
+        payload = {'type': 'gpt-4'}
+        
+        try:
+            response = requests.post(full_url, data=payload)
+            if response.status_code == 200:
+                token = response.json().get('token')
+                # 确保 token 字段存在且不是 None 或空字符串
+                if token:
+                    logger.debug(f"成功从 {url} 获取 arkose token")
+                    return token
+                else:
+                    logger.error(f"获取的 token 响应无效: {token}")
+            else:
+                logger.error(f"获取 arkose token 失败: {response.status_code}, {response.text}")
+        except requests.RequestException as e:
+            logger.error(f"请求异常: {e}")
+
+    return None
 
 import os
 
@@ -640,6 +669,10 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
             payload = generate_gpts_payload(model, formatted_messages)
             if not payload:
                 raise Exception('model is not accessible')
+        if ori_model_name != 'gpt-3.5-turbo':
+            if CUSTOM_ARKOSE:
+                token = get_token()
+                payload["arkose_token"] = token
         logger.debug(f"payload: {payload}")
         response = requests.post(url, headers=headers, json=payload, stream=True)
         # print(response)
