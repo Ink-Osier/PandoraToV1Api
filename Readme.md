@@ -117,6 +117,8 @@
 
 - `arkose_urls`: Arkose Token获取地址，如果 `custom_arkose_url` 为 `false`，则该参数无效，如果 `custom_arkose_url` 为 `true`，则该参数必填，且需要填写为可以获取Arkose Token的地址列表，例如：`https://arkose-proxy-1.pandoranext.com/<proxy-prefix>,https://arkose-proxy-2.pandoranext.com/<proxy-prefix>`，支持同时设置多个Arkose Token获取地址，从前往后轮询调用，如果第一个获取失败则自动从第二个获取，以此类推。
 
+PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取路径与参数，并与PandoraNext的Arkose Token获取接口的响应格式保持一致。
+
 - `bot_mode`
 
     - `enabled`: 用于设置是否开启 Bot 模式，可选值为：`true`、`false`，默认为 `false`，开启 Bot 模式后，将可以自定义联网插件的引引用、绘图插件的markdown格式的图片以及插件执行过程的输出，仅建议在 QQ、微信机器人等 Bot 项目中开启，网页应用请不要开启。
