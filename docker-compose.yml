@@ -10,4 +10,5 @@ services:
       - ./log:/app/log
       - ./images:/app/images
       - ./data:/app/data
+      - ./files:/app/files
     
