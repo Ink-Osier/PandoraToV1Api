@@ -180,9 +180,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.2'
+VERSION = '0.4.3'
 # VERSION = 'test'
-UPDATE_INFO = '优化未获取到Arkose的时候的异常处理'
+UPDATE_INFO = '修复各种文件生成的bug'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -803,19 +803,20 @@ def is_valid_sandbox_combined_corrected_final_v2(text):
         r'.*\(sandbox:\/[^)]*\)?',    # sandbox 后跟路径，包括不完整路径
         r'.*\(',                      # 只有 "(" 也视为合法格式
         r'.*\(sandbox(:|$)',            # 匹配 "(sandbox" 或 "(sandbox:"，确保后面不跟其他字符或字符串结束
+        r'.*\(sandbox:.*\n*',          # 匹配 "(sandbox:" 后跟任意数量的换行符
     ]
 
     # 检查文本是否符合任一合法格式
     return any(bool(re.fullmatch(pattern, text)) for pattern in patterns)
 
-
-
 def is_complete_sandbox_format(text):
     # 完整格式应该类似于 (sandbox:/xx/xx/xx 或 (sandbox:/xx/xx)
-    pattern = r'.*\(sandbox\:\/[^)]+\)'
+    pattern = r'.*\(sandbox\:\/[^)]+\)\n*'  # 匹配 "(sandbox:" 后跟任意数量的换行符
     return bool(re.fullmatch(pattern, text))
 
 import urllib.parse
+from urllib.parse import unquote
+
 
 def replace_sandbox(text, conversation_id, message_id, api_key):
     def replace_match(match):
@@ -840,6 +841,7 @@ def replace_sandbox(text, conversation_id, message_id, api_key):
         response = requests.get(sandbox_info_url, headers=headers)
 
         if response.status_code == 200:
+            logger.debug(f"获取下载 URL 成功: {response.json()}")
             return response.json().get("download_url")
         else:
             logger.error(f"获取下载 URL 失败: {response.text}")
@@ -855,7 +857,11 @@ def replace_sandbox(text, conversation_id, message_id, api_key):
     def timestamp_filename(filename):
         # 在文件名前加上当前时间戳
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        return f"{timestamp}_{filename}"
+        
+        # 解码URL编码的filename
+        decoded_filename = unquote(filename)
+        
+        return f"{timestamp}_{decoded_filename}"
 
     def download_file(download_url, filename):
         # 下载并保存文件
@@ -890,6 +896,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
     citation_accumulating = False
     file_output_buffer = ""
     file_output_accumulating = False
+    execution_output_image_url_buffer = ""
+    execution_output_image_id_buffer = ""
     for chunk in upstream_response.iter_content(chunk_size=1024):
         if chunk:
             buffer += chunk.decode('utf-8')
@@ -1116,8 +1124,6 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
 
                         # Python 工具执行输出特殊处理
                         if role == "tool" and name == "python" and last_content_type != "execution_output" and content_type != None:
-                            
-
                             full_code_result = ''.join(content.get("text", ""))
                             new_text = "`Result:` \n```\n" + full_code_result[len(last_full_code_result):]
                             if last_content_type == "code":
@@ -1134,12 +1140,21 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             full_code_result = ''.join(content.get("text", ""))
                             new_text = full_code_result[len(last_full_code_result):] + "\n```\n"
                             if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                    new_text = ""
+                                new_text = ""
+                            tmp_new_text = new_text
+                            if execution_output_image_url_buffer != "":
+                                if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
+                                    logger.debug(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
+                                    logger.debug(f"BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT: {BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT}")
+                                    new_text = tmp_new_text + f"![image]({execution_output_image_url_buffer})\n[下载链接]({execution_output_image_url_buffer})\n"
+                                if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
+                                    logger.debug(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
+                                    logger.debug(f"BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT: {BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT}")
+                                    new_text = tmp_new_text + f"图片链接：{execution_output_image_url_buffer}\n"
+                                execution_output_image_url_buffer = ""
+                            
                             if content_type == "code":
-                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                    new_text = ""
-                                else:
-                                    new_text =  new_text + "\n```\n"
+                                new_text =  new_text + "\n```\n"
                             # print(f"full_code_result: {full_code_result}")
                             # print(f"last_full_code_result: {last_full_code_result}")
                             # print(f"new_text: {new_text}")
@@ -1164,6 +1179,52 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                 else:
                                     new_text = "\n```\n" + new_text
 
+
+                    # 检查 new_text 中是否包含 <<ImageDisplayed>>
+                    if "<<ImageDisplayed>>" in last_full_code_result:
+                        # 进行提取操作
+                        aggregate_result = message.get("metadata", {}).get("aggregate_result", {})
+                        if aggregate_result:
+                            messages = aggregate_result.get("messages", [])
+                            for msg in messages:
+                                if msg.get("message_type") == "image":
+                                    image_url = msg.get("image_url")
+                                    if image_url:
+                                        # 从 image_url 提取所需的字段
+                                        image_file_id = image_url.split('://')[-1]
+                                        logger.info(f"提取到的图片文件ID: {image_file_id}")
+                                        if image_file_id != execution_output_image_id_buffer:
+                                            image_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{image_file_id}/download"
+
+                                            headers = {
+                                                "Authorization": f"Bearer {api_key}"
+                                            }
+                                            image_response = requests.get(image_url, headers=headers)
+
+                                            if image_response.status_code == 200:
+                                                download_url = image_response.json().get('download_url')
+                                                logger.debug(f"download_url: {download_url}")
+                                                if USE_OAIUSERCONTENT_URL == True:
+                                                    execution_output_image_url_buffer = download_url
+                                                    
+                                                else:
+                                                    # 从URL下载图片
+                                                    # image_data = requests.get(download_url).content
+                                                    image_download_response = requests.get(download_url)
+                                                    # print(f"image_download_response: {image_download_response.text}")
+                                                    if image_download_response.status_code == 200:
+                                                        logger.debug(f"下载图片成功")
+                                                        image_data = image_download_response.content
+                                                        today_image_url = save_image(image_data)  # 保存图片，并获取文件名
+                                                        execution_output_image_url_buffer = f"{UPLOAD_BASE_URL}/{today_image_url}"
+                                                        
+                                                    else:
+                                                        logger.error(f"下载图片失败: {image_download_response.text}")
+
+                                        execution_output_image_id_buffer = image_file_id
+
+                    # 从 new_text 中移除 <<ImageDisplayed>>
+                    new_text = new_text.replace("<<ImageDisplayed>>", "图片生成中，请稍后\n")
 
                     # print(f"收到数据: {data_json}")
                     # print(f"收到的完整文本: {full_text}")
