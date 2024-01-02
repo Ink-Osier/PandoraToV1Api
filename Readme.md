@@ -12,7 +12,7 @@
 
 2. 将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/images/generations` 接口
 
-如果你想要尝试自己生成Arkose Token从而将PandoraNext的额度消耗降低到`1:4`，你可以看看这个项目：https://github.com/Ink-Osier/GenerateArkose，但是请注意，**该项目并不保证使用该项目生成的Arkose Token不会封号，使用该项目造成的一切后果由使用者自行承担**。
+如果你想要尝试自己生成Arkose Token从而将PandoraNext的额度消耗降低到`1:4`，你可以看看这个项目：(GenerateArkose)[https://github.com/Ink-Osier/GenerateArkose]，但是请注意，**该项目并不保证使用该项目生成的Arkose Token不会封号，使用该项目造成的一切后果由使用者自行承担**。
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
