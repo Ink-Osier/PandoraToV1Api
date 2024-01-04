@@ -12,7 +12,15 @@ ENV PYTHONUNBUFFERED=1
 
 RUN chmod +x /app/start.sh
 
-RUN apt update && apt install -y jq
+RUN apt update && apt install -y \
+    jq \
+    zlib1g-dev \
+    gcc \
+    curl \
+    && curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+# 安装 Rust 编译器
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # 设置 pip 源为清华大学镜像
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
