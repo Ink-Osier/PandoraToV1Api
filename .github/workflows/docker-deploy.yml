@@ -44,3 +44,7 @@ jobs:
           wizerd/pandora-to-api:${{ steps.tag_name.outputs.tag }}
           wizerd/pandora-to-api:latest
         platforms: linux/amd64,linux/arm64,linux/arm/v7
+        build-args: |
+          TARGETPLATFORM=linux/amd64
+          TARGETPLATFORM=linux/arm64
+          TARGETPLATFORM=linux/arm/v7
