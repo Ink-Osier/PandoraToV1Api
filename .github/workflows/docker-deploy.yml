@@ -4,6 +4,10 @@ on:
   release:
     types: [created]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag Name'
+        required: true
 
 
 jobs:
@@ -22,8 +26,14 @@ jobs:
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
     - name: Extract tag name
+      if: github.event_name == 'release'
       id: tag_name
       run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+    
+    - name: Set manual tag name
+      if: github.event_name == 'workflow_dispatch'
+      id: tag_name
+      run: echo "::set-output name=tag::${{ github.event.inputs.tag }}"
 
     - name: Build and push Docker image with Release tag
       uses: docker/build-push-action@v2
