@@ -23,6 +23,7 @@ from PIL import Image
 from io import BytesIO
 from urllib.parse import urlparse, urlunparse
 import base64
+from fake_useragent import UserAgent
 
 # 读取配置文件
 def load_config(file_path):
@@ -62,6 +63,8 @@ CUSTOM_ARKOSE = CONFIG.get('custom_arkose_url', 'false').lower() == 'true'
 
 ARKOSE_URLS = CONFIG.get('arkose_urls', "")
 
+# 创建FakeUserAgent对象
+ua = UserAgent()
 
 # 设置日志级别
 log_level_dict = {
@@ -544,7 +547,10 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
                         else:
                             # 处理普通的文件URL
                             try:
-                                file_response = requests.get(file_url)
+                                headers = {
+                                    'User-Agent': ua.random
+                                }
+                                file_response = requests.get(url=file_url, headers=headers)
                                 file_content = file_response.content
                                 mime_type = file_response.headers.get('Content-Type', '').split(';')[0].strip()
                             except Exception as e:
