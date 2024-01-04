@@ -62,6 +62,7 @@ CUSTOM_ARKOSE = CONFIG.get('custom_arkose_url', 'false').lower() == 'true'
 
 ARKOSE_URLS = CONFIG.get('arkose_urls', "")
 
+DALLE_PROMPT_PREFIX = CONFIG.get('dalle_prompt_prefix', '')
 
 # 设置日志级别
 log_level_dict = {
@@ -180,9 +181,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.3'
+VERSION = '0.4.4'
 # VERSION = 'test'
-UPDATE_INFO = '修复各种文件生成的bug'
+UPDATE_INFO = '支持自定义DALLE绘图接口prompt前缀'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -258,6 +259,8 @@ with app.app_context():
 
     if CUSTOM_ARKOSE:
         logger.info(f"arkose_urls: {ARKOSE_URLS}")
+
+    logger.info(f"DALLE_prompt_prefix: {DALLE_PROMPT_PREFIX}")
 
     logger.info(f"==========================================")
 
@@ -1582,6 +1585,8 @@ def images_generations():
         return jsonify({"error": "model is not accessible"}), 401
     
     prompt = data.get('prompt', '')
+
+    prompt = DALLE_PROMPT_PREFIX + prompt
 
     # 获取请求中的response_format参数，默认为"url"
     response_format = data.get('response_format', 'url')

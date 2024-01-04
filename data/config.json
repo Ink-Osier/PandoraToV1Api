@@ -15,6 +15,7 @@
     "use_oaiusercontent_url": "false",
     "custom_arkose_url": "false",
     "arkose_urls": "",
+    "dalle_prompt_prefix": "请严格根据我的以下要求完成绘图任务，如果我没有发出指定的绘画指令，则绘制出我发出的文字对应的图片：",
     "bot_mode": {
         "enabled": "false",
         "enabled_markdown_image_output": "false",

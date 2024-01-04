@@ -119,6 +119,8 @@
 
 - `arkose_urls`: Arkose Token获取地址，如果 `custom_arkose_url` 为 `false`，则该参数无效，如果 `custom_arkose_url` 为 `true`，则该参数必填，且需要填写为可以获取Arkose Token的地址列表，例如：`https://arkose-proxy-1.pandoranext.com/<proxy-prefix>,https://arkose-proxy-2.pandoranext.com/<proxy-prefix>`，支持同时设置多个Arkose Token获取地址，从前往后轮询调用，如果第一个获取失败则自动从第二个获取，以此类推。
 
+- `dalle_prompt_prefix`: 自定义的DALLE接口prompt前缀，可以引导gpt完成绘图任务。
+
 PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取路径与参数，并与PandoraNext的Arkose Token获取接口的响应格式保持一致。
 
 - `bot_mode`
