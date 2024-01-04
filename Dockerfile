@@ -15,6 +15,7 @@ RUN chmod +x /app/start.sh
 RUN apt update && apt install -y \
     jq \
     zlib1g-dev \
+    libjpeg-dev \
     gcc \
     curl \
     && curl https://sh.rustup.rs -sSf | sh -s -- -y
