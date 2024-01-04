@@ -14,17 +14,6 @@ RUN chmod +x /app/start.sh
 
 RUN apt update && apt install -y jq
 
-RUN echo $TARGETPLATFORM
-
-RUN if [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
-        apt install -y zlib1g-dev libjpeg-dev gcc curl && \
-        curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-        export PATH="/root/.cargo/bin:${PATH}"; \
-    fi
-
-# 安装 Rust 编译器
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 # 设置 pip 源为清华大学镜像
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
