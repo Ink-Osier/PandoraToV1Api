@@ -1,3 +1,9 @@
+name: Build and Push Docker Image
+
+on:
+  release:
+    types: [created]
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -24,6 +30,6 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: |
-          yourusername/yourrepo:${{ steps.tag_name.outputs.tag }}
-          yourusername/yourrepo:latest
+          wizerd/pandora-to-api:${{ steps.tag_name.outputs.tag }}
+          wizerd/pandora-to-api:latest
         platforms: linux/amd64,linux/arm64,linux/arm/v7
