@@ -59,12 +59,13 @@ NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_a
 
 USE_OAIUSERCONTENT_URL = CONFIG.get('use_oaiusercontent_url', 'false').lower() == 'true'
 
+USE_PANDORA_FILE_SERVER = CONFIG.get('use_pandora_file_server', 'false').lower() == 'true'
+
 CUSTOM_ARKOSE = CONFIG.get('custom_arkose_url', 'false').lower() == 'true'
 
 ARKOSE_URLS = CONFIG.get('arkose_urls', "")
 
-# 创建FakeUserAgent对象
-ua = UserAgent()
+DALLE_PROMPT_PREFIX = CONFIG.get('dalle_prompt_prefix', '')
 
 # 设置日志级别
 log_level_dict = {
@@ -91,6 +92,9 @@ if NEED_LOG_TO_FILE:
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(log_formatter)
 logger.addHandler(stream_handler)
+
+# 创建FakeUserAgent对象
+ua = UserAgent()
 
 def generate_unique_id(prefix):
     # 生成一个随机的 UUID
@@ -183,9 +187,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.3'
+VERSION = '0.4.5'
 # VERSION = 'test'
-UPDATE_INFO = '修复各种文件生成的bug'
+UPDATE_INFO = '支持使用pandora的文件服务器下载文件'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -257,10 +261,14 @@ with app.app_context():
     
     logger.info(f"use_oaiusercontent_url: {USE_OAIUSERCONTENT_URL}")
 
+    logger.info(f"use_pandora_file_server: {USE_PANDORA_FILE_SERVER}")
+
     logger.info(f"custom_arkose_url: {CUSTOM_ARKOSE}")
 
     if CUSTOM_ARKOSE:
         logger.info(f"arkose_urls: {ARKOSE_URLS}")
+
+    logger.info(f"DALLE_prompt_prefix: {DALLE_PROMPT_PREFIX}")
 
     logger.info(f"==========================================")
 
@@ -828,6 +836,8 @@ def replace_sandbox(text, conversation_id, message_id, api_key):
     def replace_match(match):
         sandbox_path = match.group(1)
         download_url = get_download_url(conversation_id, message_id, sandbox_path)
+        if USE_PANDORA_FILE_SERVER == True:
+            download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
         file_name = extract_filename(download_url)
         timestamped_file_name = timestamp_filename(file_name)
         if USE_OAIUSERCONTENT_URL == False:
@@ -979,6 +989,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
 
                                 if image_response.status_code == 200:
                                     download_url = image_response.json().get('download_url')
+                                    if USE_PANDORA_FILE_SERVER == True:
+                                        download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
                                     logger.debug(f"download_url: {download_url}")
                                     if USE_OAIUSERCONTENT_URL == True:
                                         if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
@@ -1209,6 +1221,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
 
                                             if image_response.status_code == 200:
                                                 download_url = image_response.json().get('download_url')
+                                                if USE_PANDORA_FILE_SERVER == True:
+                                                    download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
                                                 logger.debug(f"download_url: {download_url}")
                                                 if USE_OAIUSERCONTENT_URL == True:
                                                     execution_output_image_url_buffer = download_url
@@ -1589,6 +1603,8 @@ def images_generations():
     
     prompt = data.get('prompt', '')
 
+    prompt = DALLE_PROMPT_PREFIX + prompt
+
     # 获取请求中的response_format参数，默认为"url"
     response_format = data.get('response_format', 'url')
 
@@ -1702,6 +1718,8 @@ def images_generations():
 
                                     if image_response.status_code == 200:
                                         download_url = image_response.json().get('download_url')
+                                        if USE_PANDORA_FILE_SERVER == True:
+                                            download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
                                         logger.debug(f"download_url: {download_url}")
                                         if USE_OAIUSERCONTENT_URL == True and response_format == "url":
                                             image_link = f"{download_url}"

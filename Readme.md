@@ -115,9 +115,13 @@
 
 - `use_oaiusercontent_url`: 是否使用OpenAI官方图片域名，可选值为：`true`、`false`，默认为 `false`，如果设置为 `true`，则会使用OpenAI的图片域名，否则使用 `backend_container_url` 参数的值作为图片域名。如果设置为 `true`，则 `backend_container_url` 可以不填且图片不会下载到image文件夹中。
 
+- `use_pandora_file_server`: 是否使用PandoraNext的文件服务器，可选值为：`true`、`false`，默认为 `true`，如果设置为 `true`，则会从PandoraNext的文件服务器下载图片等文件，否则将直接从openai的文件服务器下载文件。
+
 - `custom_arkose_url`: 是否需要自定义Arkose Token获取地址，可选值为：`true`、`false`，默认为 `false`，如果设置为 `true`，则会使用 `arkose_urls` 参数的值作为Arkose Token获取地址，否则使用默认的PandoraNext Arkose Token获取地址。
 
 - `arkose_urls`: Arkose Token获取地址，如果 `custom_arkose_url` 为 `false`，则该参数无效，如果 `custom_arkose_url` 为 `true`，则该参数必填，且需要填写为可以获取Arkose Token的地址列表，例如：`https://arkose-proxy-1.pandoranext.com/<proxy-prefix>,https://arkose-proxy-2.pandoranext.com/<proxy-prefix>`，支持同时设置多个Arkose Token获取地址，从前往后轮询调用，如果第一个获取失败则自动从第二个获取，以此类推。
+
+- `dalle_prompt_prefix`: 自定义的DALLE接口prompt前缀，可以引导gpt完成绘图任务。
 
 PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取路径与参数，并与PandoraNext的Arkose Token获取接口的响应格式保持一致。
 
