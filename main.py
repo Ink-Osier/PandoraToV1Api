@@ -187,9 +187,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.5'
+VERSION = '0.4.6'
 # VERSION = 'test'
-UPDATE_INFO = '支持使用pandora的文件服务器下载文件'
+UPDATE_INFO = '支持使用随机ua头下载gpt-4-vision接口传入的文件'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -555,10 +555,12 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
                         else:
                             # 处理普通的文件URL
                             try:
-                                headers = {
-                                    'User-Agent': ua.random
+                                tmp_user_agent = ua.random
+                                logger.debug(f"随机 User-Agent: {tmp_user_agent}")
+                                tmp_headers = {
+                                    'User-Agent': tmp_user_agent
                                 }
-                                file_response = requests.get(url=file_url, headers=headers)
+                                file_response = requests.get(url=file_url, headers=tmp_headers)
                                 file_content = file_response.content
                                 mime_type = file_response.headers.get('Content-Type', '').split(';')[0].strip()
                             except Exception as e:
