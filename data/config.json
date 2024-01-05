@@ -13,6 +13,7 @@
     "gpt_3_5_new_name": "gpt-3.5-turbo",
     "need_delete_conversation_after_response": "true",
     "use_oaiusercontent_url": "false",
+    "use_pandora_file_server": "true",
     "custom_arkose_url": "false",
     "arkose_urls": "",
     "dalle_prompt_prefix": "请严格根据我的以下要求完成绘图任务，如果我没有发出指定的绘画指令，则绘制出我发出的文字对应的图片：",
