@@ -187,9 +187,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.6'
+VERSION = '0.4.7'
 # VERSION = 'test'
-UPDATE_INFO = '支持使用随机ua头下载gpt-4-vision接口传入的文件'
+UPDATE_INFO = '支持绘图失败的错误输出'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -1966,28 +1966,39 @@ def images_generations():
         pass
     # 构造响应的 JSON 结构
     response_json = {}
-    if response_format == "url":
+    # 检查 image_urls 是否为空
+    if not image_urls:
         response_json = {
-            "created": int(time.time()),  # 使用当前时间戳
-            # "reply": all_new_text,  # 使用累积的文本
-            "data": [
-                {
-                    "revised_prompt": all_new_text,  # 将描述文本加入每个字典
-                    "url": url
-                } for url in image_urls
-            ]  # 将图片链接列表转换为所需格式
+            "error": {
+                "message": all_new_text,  # 使用累积的文本作为错误信息
+                "type": "invalid_request_error",
+                "param": "",
+                "code": "content_policy_violation"
+            }
         }
     else:
-        response_json = {
-            "created": int(time.time()),  # 使用当前时间戳
-            # "reply": all_new_text,  # 使用累积的文本
-            "data": [
-                {
-                    "revised_prompt": all_new_text,  # 将描述文本加入每个字典
-                    "b64_json": base64
-                } for base64 in image_urls
-            ]  # 将图片链接列表转换为所需格式
-        }
+        if response_format == "url":
+            response_json = {
+                "created": int(time.time()),  # 使用当前时间戳
+                # "reply": all_new_text,  # 使用累积的文本
+                "data": [
+                    {
+                        "revised_prompt": all_new_text,  # 将描述文本加入每个字典
+                        "url": url
+                    } for url in image_urls
+                ]  # 将图片链接列表转换为所需格式
+            }
+        else:
+            response_json = {
+                "created": int(time.time()),  # 使用当前时间戳
+                # "reply": all_new_text,  # 使用累积的文本
+                "data": [
+                    {
+                        "revised_prompt": all_new_text,  # 将描述文本加入每个字典
+                        "b64_json": base64
+                    } for base64 in image_urls
+                ]  # 将图片链接列表转换为所需格式
+            }
     logger.debug(f"response_json: {response_json}")
 
     # 返回 JSON 响应
