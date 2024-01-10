@@ -187,9 +187,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.8'
+VERSION = '0.4.9'
 # VERSION = 'test'
-UPDATE_INFO = '基于Redis减少重复文件的上传，优化响应速度'
+UPDATE_INFO = '尝试解决未知错误引起的会话中断导致对话记录删除失败的问题'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -952,351 +952,370 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
     file_output_accumulating = False
     execution_output_image_url_buffer = ""
     execution_output_image_id_buffer = ""
-    for chunk in upstream_response.iter_content(chunk_size=1024):
-        if chunk:
-            buffer += chunk.decode('utf-8')
-            # 检查是否存在 "event: ping"，如果存在，则只保留 "data:" 后面的内容
-            if "event: ping" in buffer:
-                if "data:" in buffer:
-                    buffer = buffer.split("data:", 1)[1]
-                    buffer = "data:" + buffer
-            # 使用正则表达式移除特定格式的字符串
-            # print("应用正则表达式之前的 buffer:", buffer.replace('\n', '\\n'))
-            buffer = re.sub(r'data: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}(\r\n|\r|\n){2}', '', buffer)
-            # print("应用正则表达式之后的 buffer:", buffer.replace('\n', '\\n'))
+    try:
+        for chunk in upstream_response.iter_content(chunk_size=1024):
+            if chunk:
+                buffer += chunk.decode('utf-8')
+                # 检查是否存在 "event: ping"，如果存在，则只保留 "data:" 后面的内容
+                if "event: ping" in buffer:
+                    if "data:" in buffer:
+                        buffer = buffer.split("data:", 1)[1]
+                        buffer = "data:" + buffer
+                # 使用正则表达式移除特定格式的字符串
+                # print("应用正则表达式之前的 buffer:", buffer.replace('\n', '\\n'))
+                buffer = re.sub(r'data: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}(\r\n|\r|\n){2}', '', buffer)
+                # print("应用正则表达式之后的 buffer:", buffer.replace('\n', '\\n'))
 
 
 
-            while 'data:' in buffer and '\n\n' in buffer:
-                end_index = buffer.index('\n\n') + 2
-                complete_data, buffer = buffer[:end_index], buffer[end_index:]
-                # 解析 data 块
-                try:
-                    data_json = json.loads(complete_data.replace('data: ', ''))
-                    # print(f"data_json: {data_json}")
-                    message = data_json.get("message", {})
-
-                    if message == {} or message == None:
-                        logger.debug(f"message 为空: data_json: {data_json}")
-
-                    message_id = message.get("id")
-                    message_status = message.get("status")
-                    content = message.get("content", {})
-                    role = message.get("author", {}).get("role")
-                    content_type = content.get("content_type")
-                    print(f"content_type: {content_type}")
-                    print(f"last_content_type: {last_content_type}")
-
-                    metadata = {}
-                    citations = []
+                while 'data:' in buffer and '\n\n' in buffer:
+                    end_index = buffer.index('\n\n') + 2
+                    complete_data, buffer = buffer[:end_index], buffer[end_index:]
+                    # 解析 data 块
                     try:
-                        metadata = message.get("metadata", {})
-                        citations = metadata.get("citations", [])
-                    except:
-                        pass
-                    name = message.get("author", {}).get("name")
-                    if (role == "user" or message_status == "finished_successfully" or role == "system") and role != "tool":
-                        # 如果是用户发来的消息，直接舍弃
-                        continue
-                    try:
-                        conversation_id = data_json.get("conversation_id")
-                        # print(f"conversation_id: {conversation_id}")
-                        if conversation_id:
-                            data_queue.put(('conversation_id', conversation_id))
-                    except:
-                        pass
-                        # 只获取新的部分
-                    new_text = ""
-                    is_img_message = False
-                    parts = content.get("parts", [])
-                    for part in parts:
+                        data_json = json.loads(complete_data.replace('data: ', ''))
+                        # print(f"data_json: {data_json}")
+                        message = data_json.get("message", {})
+
+                        if message == {} or message == None:
+                            logger.debug(f"message 为空: data_json: {data_json}")
+
+                        message_id = message.get("id")
+                        message_status = message.get("status")
+                        content = message.get("content", {})
+                        role = message.get("author", {}).get("role")
+                        content_type = content.get("content_type")
+                        print(f"content_type: {content_type}")
+                        print(f"last_content_type: {last_content_type}")
+
+                        metadata = {}
+                        citations = []
                         try:
-                            # print(f"part: {part}")
-                            # print(f"part type: {part.get('content_type')}")
-                            if part.get('content_type') == 'image_asset_pointer':
-                                logger.debug(f"find img message~")
-                                is_img_message = True
-                                asset_pointer = part.get('asset_pointer').replace('file-service://', '')
-                                logger.debug(f"asset_pointer: {asset_pointer}")
-                                image_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
-
-                                headers = {
-                                    "Authorization": f"Bearer {api_key}"
-                                }
-                                image_response = requests.get(image_url, headers=headers)
-
-                                if image_response.status_code == 200:
-                                    download_url = image_response.json().get('download_url')
-                                    if USE_PANDORA_FILE_SERVER == True:
-                                        download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
-                                    logger.debug(f"download_url: {download_url}")
-                                    if USE_OAIUSERCONTENT_URL == True:
-                                        if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
-                                            new_text = f"\n![image]({download_url})\n[下载链接]({download_url})\n"
-                                        if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
-                                            if all_new_text != "":
-                                                new_text = f"\n图片链接：{download_url}\n"
-                                            else:
-                                                new_text = f"图片链接：{download_url}\n"
-                                    else:
-                                        # 从URL下载图片
-                                        # image_data = requests.get(download_url).content
-                                        image_download_response = requests.get(download_url)
-                                        # print(f"image_download_response: {image_download_response.text}")
-                                        if image_download_response.status_code == 200:
-                                            logger.debug(f"下载图片成功")
-                                            image_data = image_download_response.content
-                                            today_image_url = save_image(image_data)  # 保存图片，并获取文件名
-                                            if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
-                                                new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
-                                            if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
-                                                if all_new_text != "":
-                                                    new_text = f"\n图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
-                                                else:
-                                                    new_text = f"图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
-                                        else:
-                                            logger.error(f"下载图片失败: {image_download_response.text}")
-                                    if last_content_type == "code":
-                                        if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                            new_text = new_text
-                                        else:
-                                            new_text = "\n```\n" + new_text
-                                        
-                                    logger.debug(f"new_text: {new_text}")
-                                    is_img_message = True
-                                else:
-                                    logger.error(f"获取图片下载链接失败: {image_response.text}")
+                            metadata = message.get("metadata", {})
+                            citations = metadata.get("citations", [])
                         except:
                             pass
-                                
-
-                    if is_img_message == False:
-                        # print(f"data_json: {data_json}")
-                        if content_type == "multimodal_text" and last_content_type == "code":
-                            new_text = "\n```\n" + content.get("text", "")
-                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                new_text = content.get("text", "")
-                        elif role == "tool" and name == "dalle.text2im":
-                            logger.debug(f"无视消息: {content.get('text', '')}")
+                        name = message.get("author", {}).get("name")
+                        if (role == "user" or message_status == "finished_successfully" or role == "system") and role != "tool":
+                            # 如果是用户发来的消息，直接舍弃
                             continue
-                        # 代码块特殊处理
-                        if content_type == "code" and last_content_type != "code" and content_type != None:
-                            full_code = ''.join(content.get("text", ""))
-                            new_text = "\n```\n" + full_code[len(last_full_code):]
-                            # print(f"full_code: {full_code}")
-                            # print(f"last_full_code: {last_full_code}")
-                            # print(f"new_text: {new_text}")
-                            last_full_code = full_code  # 更新完整代码以备下次比较
-                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                new_text = ""
-                            
-                        elif last_content_type == "code" and content_type != "code" and content_type != None:
-                            full_code = ''.join(content.get("text", ""))
-                            new_text = "\n```\n" + full_code[len(last_full_code):]
-                            # print(f"full_code: {full_code}")
-                            # print(f"last_full_code: {last_full_code}")
-                            # print(f"new_text: {new_text}")
-                            last_full_code = ""  # 更新完整代码以备下次比较
-                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                new_text = ""
+                        try:
+                            conversation_id = data_json.get("conversation_id")
+                            # print(f"conversation_id: {conversation_id}")
+                            if conversation_id:
+                                data_queue.put(('conversation_id', conversation_id))
+                        except:
+                            pass
+                            # 只获取新的部分
+                        new_text = ""
+                        is_img_message = False
+                        parts = content.get("parts", [])
+                        for part in parts:
+                            try:
+                                # print(f"part: {part}")
+                                # print(f"part type: {part.get('content_type')}")
+                                if part.get('content_type') == 'image_asset_pointer':
+                                    logger.debug(f"find img message~")
+                                    is_img_message = True
+                                    asset_pointer = part.get('asset_pointer').replace('file-service://', '')
+                                    logger.debug(f"asset_pointer: {asset_pointer}")
+                                    image_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{asset_pointer}/download"
 
-                        elif content_type == "code" and last_content_type == "code" and content_type != None:
-                            full_code = ''.join(content.get("text", ""))
-                            new_text = full_code[len(last_full_code):]
-                            # print(f"full_code: {full_code}")
-                            # print(f"last_full_code: {last_full_code}")
-                            # print(f"new_text: {new_text}")
-                            last_full_code = full_code  # 更新完整代码以备下次比较
-                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                new_text = ""
-                            
-                        else:
-                            # 只获取新的 parts
-                            parts = content.get("parts", [])
-                            full_text = ''.join(parts)
-                            new_text = full_text[len(last_full_text):]
-                            last_full_text = full_text  # 更新完整文本以备下次比较
-                            if "\u3010" in new_text and not citation_accumulating:
-                                citation_accumulating = True
-                                citation_buffer = citation_buffer + new_text
-                                # print(f"开始积累引用: {citation_buffer}")
-                            elif citation_accumulating:
-                                citation_buffer += new_text
-                                # print(f"积累引用: {citation_buffer}")
-                            if citation_accumulating:
-                                if is_valid_citation_format(citation_buffer):
-                                    # print(f"合法格式: {citation_buffer}")
-                                    # 继续积累
-                                    if is_complete_citation_format(citation_buffer):
+                                    headers = {
+                                        "Authorization": f"Bearer {api_key}"
+                                    }
+                                    image_response = requests.get(image_url, headers=headers)
 
-                                        # 替换完整的引用格式
-                                        replaced_text, remaining_text, is_potential_citation = replace_complete_citation(citation_buffer, citations)
-                                        # print(replaced_text)  # 输出替换后的文本
-                                        new_text = replaced_text
-                                        
-                                        if(is_potential_citation):
-                                            citation_buffer = remaining_text
+                                    if image_response.status_code == 200:
+                                        download_url = image_response.json().get('download_url')
+                                        if USE_PANDORA_FILE_SERVER == True:
+                                            download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
+                                        logger.debug(f"download_url: {download_url}")
+                                        if USE_OAIUSERCONTENT_URL == True:
+                                            if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
+                                                new_text = f"\n![image]({download_url})\n[下载链接]({download_url})\n"
+                                            if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
+                                                if all_new_text != "":
+                                                    new_text = f"\n图片链接：{download_url}\n"
+                                                else:
+                                                    new_text = f"图片链接：{download_url}\n"
                                         else:
-                                            citation_accumulating = False
-                                            citation_buffer = ""
-                                        # print(f"替换完整的引用格式: {new_text}")
+                                            # 从URL下载图片
+                                            # image_data = requests.get(download_url).content
+                                            image_download_response = requests.get(download_url)
+                                            # print(f"image_download_response: {image_download_response.text}")
+                                            if image_download_response.status_code == 200:
+                                                logger.debug(f"下载图片成功")
+                                                image_data = image_download_response.content
+                                                today_image_url = save_image(image_data)  # 保存图片，并获取文件名
+                                                if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
+                                                    new_text = f"\n![image]({UPLOAD_BASE_URL}/{today_image_url})\n[下载链接]({UPLOAD_BASE_URL}/{today_image_url})\n"
+                                                if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
+                                                    if all_new_text != "":
+                                                        new_text = f"\n图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                                    else:
+                                                        new_text = f"图片链接：{UPLOAD_BASE_URL}/{today_image_url}\n"
+                                            else:
+                                                logger.error(f"下载图片失败: {image_download_response.text}")
+                                        if last_content_type == "code":
+                                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                                new_text = new_text
+                                            else:
+                                                new_text = "\n```\n" + new_text
+                                            
+                                        logger.debug(f"new_text: {new_text}")
+                                        is_img_message = True
                                     else:
-                                        continue
-                                else:
-                                    # 不是合法格式，放弃积累并响应
-                                    # print(f"不合法格式: {citation_buffer}")
-                                    new_text = citation_buffer
-                                    citation_accumulating = False
-                                    citation_buffer = ""
+                                        logger.error(f"获取图片下载链接失败: {image_response.text}")
+                            except:
+                                pass
+                                    
 
-                            if "(" in new_text and not file_output_accumulating and not citation_accumulating:
-                                file_output_accumulating = True
-                                file_output_buffer = file_output_buffer + new_text
-                                logger.debug(f"开始积累文件输出: {file_output_buffer}")
-                            elif file_output_accumulating:
-                                file_output_buffer += new_text
-                                logger.debug(f"积累文件输出: {file_output_buffer}")
-                            if file_output_accumulating:
-                                if is_valid_sandbox_combined_corrected_final_v2(file_output_buffer):
-                                    logger.debug(f"合法文件输出格式: {file_output_buffer}")
-                                    # 继续积累
-                                    if is_complete_sandbox_format(file_output_buffer):
-                                        # 替换完整的引用格式
-                                        replaced_text = replace_sandbox(file_output_buffer, conversation_id, message_id, api_key)
-                                        # print(replaced_text)  # 输出替换后的文本
-                                        new_text = replaced_text
+                        if is_img_message == False:
+                            # print(f"data_json: {data_json}")
+                            if content_type == "multimodal_text" and last_content_type == "code":
+                                new_text = "\n```\n" + content.get("text", "")
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = content.get("text", "")
+                            elif role == "tool" and name == "dalle.text2im":
+                                logger.debug(f"无视消息: {content.get('text', '')}")
+                                continue
+                            # 代码块特殊处理
+                            if content_type == "code" and last_content_type != "code" and content_type != None:
+                                full_code = ''.join(content.get("text", ""))
+                                new_text = "\n```\n" + full_code[len(last_full_code):]
+                                # print(f"full_code: {full_code}")
+                                # print(f"last_full_code: {last_full_code}")
+                                # print(f"new_text: {new_text}")
+                                last_full_code = full_code  # 更新完整代码以备下次比较
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
+                                
+                            elif last_content_type == "code" and content_type != "code" and content_type != None:
+                                full_code = ''.join(content.get("text", ""))
+                                new_text = "\n```\n" + full_code[len(last_full_code):]
+                                # print(f"full_code: {full_code}")
+                                # print(f"last_full_code: {last_full_code}")
+                                # print(f"new_text: {new_text}")
+                                last_full_code = ""  # 更新完整代码以备下次比较
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
+
+                            elif content_type == "code" and last_content_type == "code" and content_type != None:
+                                full_code = ''.join(content.get("text", ""))
+                                new_text = full_code[len(last_full_code):]
+                                # print(f"full_code: {full_code}")
+                                # print(f"last_full_code: {last_full_code}")
+                                # print(f"new_text: {new_text}")
+                                last_full_code = full_code  # 更新完整代码以备下次比较
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
+                                
+                            else:
+                                # 只获取新的 parts
+                                parts = content.get("parts", [])
+                                full_text = ''.join(parts)
+                                new_text = full_text[len(last_full_text):]
+                                last_full_text = full_text  # 更新完整文本以备下次比较
+                                if "\u3010" in new_text and not citation_accumulating:
+                                    citation_accumulating = True
+                                    citation_buffer = citation_buffer + new_text
+                                    # print(f"开始积累引用: {citation_buffer}")
+                                elif citation_accumulating:
+                                    citation_buffer += new_text
+                                    # print(f"积累引用: {citation_buffer}")
+                                if citation_accumulating:
+                                    if is_valid_citation_format(citation_buffer):
+                                        # print(f"合法格式: {citation_buffer}")
+                                        # 继续积累
+                                        if is_complete_citation_format(citation_buffer):
+
+                                            # 替换完整的引用格式
+                                            replaced_text, remaining_text, is_potential_citation = replace_complete_citation(citation_buffer, citations)
+                                            # print(replaced_text)  # 输出替换后的文本
+                                            new_text = replaced_text
+                                            
+                                            if(is_potential_citation):
+                                                citation_buffer = remaining_text
+                                            else:
+                                                citation_accumulating = False
+                                                citation_buffer = ""
+                                            # print(f"替换完整的引用格式: {new_text}")
+                                        else:
+                                            continue
+                                    else:
+                                        # 不是合法格式，放弃积累并响应
+                                        # print(f"不合法格式: {citation_buffer}")
+                                        new_text = citation_buffer
+                                        citation_accumulating = False
+                                        citation_buffer = ""
+
+                                if "(" in new_text and not file_output_accumulating and not citation_accumulating:
+                                    file_output_accumulating = True
+                                    file_output_buffer = file_output_buffer + new_text
+                                    logger.debug(f"开始积累文件输出: {file_output_buffer}")
+                                elif file_output_accumulating:
+                                    file_output_buffer += new_text
+                                    logger.debug(f"积累文件输出: {file_output_buffer}")
+                                if file_output_accumulating:
+                                    if is_valid_sandbox_combined_corrected_final_v2(file_output_buffer):
+                                        logger.debug(f"合法文件输出格式: {file_output_buffer}")
+                                        # 继续积累
+                                        if is_complete_sandbox_format(file_output_buffer):
+                                            # 替换完整的引用格式
+                                            replaced_text = replace_sandbox(file_output_buffer, conversation_id, message_id, api_key)
+                                            # print(replaced_text)  # 输出替换后的文本
+                                            new_text = replaced_text
+                                            file_output_accumulating = False
+                                            file_output_buffer = ""
+                                            logger.debug(f"替换完整的文件输出格式: {new_text}")
+                                        else:
+                                            continue
+                                    else:
+                                        # 不是合法格式，放弃积累并响应
+                                        logger.debug(f"不合法格式: {file_output_buffer}")
+                                        new_text = file_output_buffer
                                         file_output_accumulating = False
                                         file_output_buffer = ""
-                                        logger.debug(f"替换完整的文件输出格式: {new_text}")
+
+
+                            # Python 工具执行输出特殊处理
+                            if role == "tool" and name == "python" and last_content_type != "execution_output" and content_type != None:
+                                full_code_result = ''.join(content.get("text", ""))
+                                new_text = "`Result:` \n```\n" + full_code_result[len(last_full_code_result):]
+                                if last_content_type == "code":
+                                    if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                        new_text = ""
                                     else:
-                                        continue
-                                else:
-                                    # 不是合法格式，放弃积累并响应
-                                    logger.debug(f"不合法格式: {file_output_buffer}")
-                                    new_text = file_output_buffer
-                                    file_output_accumulating = False
-                                    file_output_buffer = ""
-
-
-                        # Python 工具执行输出特殊处理
-                        if role == "tool" and name == "python" and last_content_type != "execution_output" and content_type != None:
-                            full_code_result = ''.join(content.get("text", ""))
-                            new_text = "`Result:` \n```\n" + full_code_result[len(last_full_code_result):]
-                            if last_content_type == "code":
+                                        new_text = "\n```\n" + new_text
+                                # print(f"full_code_result: {full_code_result}")
+                                # print(f"last_full_code_result: {last_full_code_result}")
+                                # print(f"new_text: {new_text}")
+                                last_full_code_result = full_code_result  # 更新完整代码以备下次比较
+                            elif last_content_type == "execution_output" and (role != "tool" or name != "python") and content_type != None:
+                                # new_text = content.get("text", "") + "\n```"
+                                full_code_result = ''.join(content.get("text", ""))
+                                new_text = full_code_result[len(last_full_code_result):] + "\n```\n"
+                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = ""
+                                tmp_new_text = new_text
+                                if execution_output_image_url_buffer != "":
+                                    if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
+                                        logger.debug(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
+                                        logger.debug(f"BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT: {BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT}")
+                                        new_text = tmp_new_text + f"![image]({execution_output_image_url_buffer})\n[下载链接]({execution_output_image_url_buffer})\n"
+                                    if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
+                                        logger.debug(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
+                                        logger.debug(f"BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT: {BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT}")
+                                        new_text = tmp_new_text + f"图片链接：{execution_output_image_url_buffer}\n"
+                                    execution_output_image_url_buffer = ""
+                                
+                                if content_type == "code":
+                                    new_text =  new_text + "\n```\n"
+                                # print(f"full_code_result: {full_code_result}")
+                                # print(f"last_full_code_result: {last_full_code_result}")
+                                # print(f"new_text: {new_text}")
+                                last_full_code_result = ""  # 更新完整代码以备下次比较
+                            elif last_content_type == "execution_output" and role == "tool" and name == "python" and content_type != None:
+                                full_code_result = ''.join(content.get("text", ""))
                                 if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
                                     new_text = ""
                                 else:
-                                    new_text = "\n```\n" + new_text
-                            # print(f"full_code_result: {full_code_result}")
-                            # print(f"last_full_code_result: {last_full_code_result}")
-                            # print(f"new_text: {new_text}")
-                            last_full_code_result = full_code_result  # 更新完整代码以备下次比较
-                        elif last_content_type == "execution_output" and (role != "tool" or name != "python") and content_type != None:
-                            # new_text = content.get("text", "") + "\n```"
-                            full_code_result = ''.join(content.get("text", ""))
-                            new_text = full_code_result[len(last_full_code_result):] + "\n```\n"
-                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                    new_text = full_code_result[len(last_full_code_result):]
+                                # print(f"full_code_result: {full_code_result}")
+                                # print(f"last_full_code_result: {last_full_code_result}")
+                                # print(f"new_text: {new_text}")
+                                last_full_code_result = full_code_result
+
+                            # 其余Action执行输出特殊处理
+                            if role == "tool" and name != "python" and name != "dalle.text2im" and last_content_type != "execution_output" and content_type != None:                     
                                 new_text = ""
-                            tmp_new_text = new_text
-                            if execution_output_image_url_buffer != "":
-                                if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
-                                    logger.debug(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
-                                    logger.debug(f"BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT: {BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT}")
-                                    new_text = tmp_new_text + f"![image]({execution_output_image_url_buffer})\n[下载链接]({execution_output_image_url_buffer})\n"
-                                if BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT == True:
-                                    logger.debug(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
-                                    logger.debug(f"BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT: {BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT}")
-                                    new_text = tmp_new_text + f"图片链接：{execution_output_image_url_buffer}\n"
-                                execution_output_image_url_buffer = ""
-                            
-                            if content_type == "code":
-                                new_text =  new_text + "\n```\n"
-                            # print(f"full_code_result: {full_code_result}")
-                            # print(f"last_full_code_result: {last_full_code_result}")
-                            # print(f"new_text: {new_text}")
-                            last_full_code_result = ""  # 更新完整代码以备下次比较
-                        elif last_content_type == "execution_output" and role == "tool" and name == "python" and content_type != None:
-                            full_code_result = ''.join(content.get("text", ""))
-                            if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                new_text = ""
-                            else:
-                                new_text = full_code_result[len(last_full_code_result):]
-                            # print(f"full_code_result: {full_code_result}")
-                            # print(f"last_full_code_result: {last_full_code_result}")
-                            # print(f"new_text: {new_text}")
-                            last_full_code_result = full_code_result
-
-                        # 其余Action执行输出特殊处理
-                        if role == "tool" and name != "python" and name != "dalle.text2im" and last_content_type != "execution_output" and content_type != None:                     
-                            new_text = ""
-                            if last_content_type == "code":
-                                if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
-                                    new_text = ""
-                                else:
-                                    new_text = "\n```\n" + new_text
+                                if last_content_type == "code":
+                                    if BOT_MODE_ENABLED and BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT == False:
+                                        new_text = ""
+                                    else:
+                                        new_text = "\n```\n" + new_text
 
 
-                    # 检查 new_text 中是否包含 <<ImageDisplayed>>
-                    if "<<ImageDisplayed>>" in last_full_code_result:
-                        # 进行提取操作
-                        aggregate_result = message.get("metadata", {}).get("aggregate_result", {})
-                        if aggregate_result:
-                            messages = aggregate_result.get("messages", [])
-                            for msg in messages:
-                                if msg.get("message_type") == "image":
-                                    image_url = msg.get("image_url")
-                                    if image_url:
-                                        # 从 image_url 提取所需的字段
-                                        image_file_id = image_url.split('://')[-1]
-                                        logger.info(f"提取到的图片文件ID: {image_file_id}")
-                                        if image_file_id != execution_output_image_id_buffer:
-                                            image_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{image_file_id}/download"
+                        # 检查 new_text 中是否包含 <<ImageDisplayed>>
+                        if "<<ImageDisplayed>>" in last_full_code_result:
+                            # 进行提取操作
+                            aggregate_result = message.get("metadata", {}).get("aggregate_result", {})
+                            if aggregate_result:
+                                messages = aggregate_result.get("messages", [])
+                                for msg in messages:
+                                    if msg.get("message_type") == "image":
+                                        image_url = msg.get("image_url")
+                                        if image_url:
+                                            # 从 image_url 提取所需的字段
+                                            image_file_id = image_url.split('://')[-1]
+                                            logger.info(f"提取到的图片文件ID: {image_file_id}")
+                                            if image_file_id != execution_output_image_id_buffer:
+                                                image_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{image_file_id}/download"
 
-                                            headers = {
-                                                "Authorization": f"Bearer {api_key}"
-                                            }
-                                            image_response = requests.get(image_url, headers=headers)
+                                                headers = {
+                                                    "Authorization": f"Bearer {api_key}"
+                                                }
+                                                image_response = requests.get(image_url, headers=headers)
 
-                                            if image_response.status_code == 200:
-                                                download_url = image_response.json().get('download_url')
-                                                if USE_PANDORA_FILE_SERVER == True:
-                                                    download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
-                                                logger.debug(f"download_url: {download_url}")
-                                                if USE_OAIUSERCONTENT_URL == True:
-                                                    execution_output_image_url_buffer = download_url
-                                                    
-                                                else:
-                                                    # 从URL下载图片
-                                                    # image_data = requests.get(download_url).content
-                                                    image_download_response = requests.get(download_url)
-                                                    # print(f"image_download_response: {image_download_response.text}")
-                                                    if image_download_response.status_code == 200:
-                                                        logger.debug(f"下载图片成功")
-                                                        image_data = image_download_response.content
-                                                        today_image_url = save_image(image_data)  # 保存图片，并获取文件名
-                                                        execution_output_image_url_buffer = f"{UPLOAD_BASE_URL}/{today_image_url}"
+                                                if image_response.status_code == 200:
+                                                    download_url = image_response.json().get('download_url')
+                                                    if USE_PANDORA_FILE_SERVER == True:
+                                                        download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
+                                                    logger.debug(f"download_url: {download_url}")
+                                                    if USE_OAIUSERCONTENT_URL == True:
+                                                        execution_output_image_url_buffer = download_url
                                                         
                                                     else:
-                                                        logger.error(f"下载图片失败: {image_download_response.text}")
+                                                        # 从URL下载图片
+                                                        # image_data = requests.get(download_url).content
+                                                        image_download_response = requests.get(download_url)
+                                                        # print(f"image_download_response: {image_download_response.text}")
+                                                        if image_download_response.status_code == 200:
+                                                            logger.debug(f"下载图片成功")
+                                                            image_data = image_download_response.content
+                                                            today_image_url = save_image(image_data)  # 保存图片，并获取文件名
+                                                            execution_output_image_url_buffer = f"{UPLOAD_BASE_URL}/{today_image_url}"
+                                                            
+                                                        else:
+                                                            logger.error(f"下载图片失败: {image_download_response.text}")
 
-                                        execution_output_image_id_buffer = image_file_id
+                                            execution_output_image_id_buffer = image_file_id
 
-                    # 从 new_text 中移除 <<ImageDisplayed>>
-                    new_text = new_text.replace("<<ImageDisplayed>>", "图片生成中，请稍后\n")
+                        # 从 new_text 中移除 <<ImageDisplayed>>
+                        new_text = new_text.replace("<<ImageDisplayed>>", "图片生成中，请稍后\n")
 
-                    # print(f"收到数据: {data_json}")
-                    # print(f"收到的完整文本: {full_text}")
-                    # print(f"上次收到的完整文本: {last_full_text}")
-                    # print(f"新的文本: {new_text}")
+                        # print(f"收到数据: {data_json}")
+                        # print(f"收到的完整文本: {full_text}")
+                        # print(f"上次收到的完整文本: {last_full_text}")
+                        # print(f"新的文本: {new_text}")
 
-                    # 更新 last_content_type
-                    if content_type != None:
-                        last_content_type = content_type if role != "user" else last_content_type
+                        # 更新 last_content_type
+                        if content_type != None:
+                            last_content_type = content_type if role != "user" else last_content_type
 
-                    model_slug = message.get("metadata", {}).get("model_slug") or model
+                        model_slug = message.get("metadata", {}).get("model_slug") or model
 
 
-                    if first_output:
+                        if first_output:
+                            new_data = {
+                                "id": chat_message_id,
+                                "object": "chat.completion.chunk",
+                                "created": timestamp,
+                                "model": model_slug,
+                                "choices": [
+                                    {
+                                        "index": 0,
+                                        "delta": {"role":"assistant"},
+                                        "finish_reason": None
+                                    }
+                                ]
+                            }
+                            q_data = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
+                            data_queue.put(q_data)
+                            first_output = False
+
+
                         new_data = {
                             "id": chat_message_id,
                             "object": "chat.completion.chunk",
@@ -1305,140 +1324,130 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                             "choices": [
                                 {
                                     "index": 0,
-                                    "delta": {"role":"assistant"},
+                                    "delta": {
+                                        "content": ''.join(new_text)
+                                    },
                                     "finish_reason": None
                                 }
                             ]
                         }
+                        # print(f"Role: {role}")
+                        logger.info(f"发送消息: {new_text}")
+                        tmp = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
+                        # print(f"发送数据: {tmp}")
+                        # 累积 new_text
+                        all_new_text += new_text
                         q_data = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
-                        data_queue.put(q_data)
-                        first_output = False
-
-
-                    new_data = {
-                        "id": chat_message_id,
-                        "object": "chat.completion.chunk",
-                        "created": timestamp,
-                        "model": model_slug,
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {
-                                    "content": ''.join(new_text)
-                                },
-                                "finish_reason": None
-                            }
-                        ]
-                    }
-                    # print(f"Role: {role}")
-                    logger.info(f"发送消息: {new_text}")
-                    tmp = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
-                    # print(f"发送数据: {tmp}")
-                    # 累积 new_text
-                    all_new_text += new_text
-                    q_data = 'data: ' + json.dumps(new_data, ensure_ascii=False) + '\n\n'
-                    data_queue.put(q_data)
-                    last_data_time[0] = time.time()
-                    if stop_event.is_set():
-                        break
-                except json.JSONDecodeError:
-                    # print("JSON 解析错误")
-                    logger.info(f"发送数据: {complete_data}")
-                    if complete_data == 'data: [DONE]\n\n':
-                        logger.info(f"会话结束")
-                        q_data = complete_data
-                        data_queue.put(('all_new_text', all_new_text))
                         data_queue.put(q_data)
                         last_data_time[0] = time.time()
                         if stop_event.is_set():
                             break
-    if citation_buffer != "":
-        new_data = {
-            "id": chat_message_id,
-            "object": "chat.completion.chunk",
-            "created": timestamp,
-            "model": message.get("metadata", {}).get("model_slug"),
-            "choices": [
-                {
-                    "index": 0,
-                    "delta": {
-                        "content": ''.join(citation_buffer)
-                    },
-                    "finish_reason": None
-                }
-            ]
-        }
-        tmp = 'data: ' + json.dumps(new_data) + '\n\n'
-        # print(f"发送数据: {tmp}")
-        # 累积 new_text
-        all_new_text += citation_buffer
-        q_data =  'data: ' + json.dumps(new_data) + '\n\n'
+                    except json.JSONDecodeError:
+                        # print("JSON 解析错误")
+                        logger.info(f"发送数据: {complete_data}")
+                        if complete_data == 'data: [DONE]\n\n':
+                            logger.info(f"会话结束")
+                            q_data = complete_data
+                            data_queue.put(('all_new_text', all_new_text))
+                            data_queue.put(q_data)
+                            last_data_time[0] = time.time()
+                            if stop_event.is_set():
+                                break
+        if citation_buffer != "":
+            new_data = {
+                "id": chat_message_id,
+                "object": "chat.completion.chunk",
+                "created": timestamp,
+                "model": message.get("metadata", {}).get("model_slug"),
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "content": ''.join(citation_buffer)
+                        },
+                        "finish_reason": None
+                    }
+                ]
+            }
+            tmp = 'data: ' + json.dumps(new_data) + '\n\n'
+            # print(f"发送数据: {tmp}")
+            # 累积 new_text
+            all_new_text += citation_buffer
+            q_data =  'data: ' + json.dumps(new_data) + '\n\n'
+            data_queue.put(q_data)
+            last_data_time[0] = time.time()
+        if buffer:
+            # print(f"最后的数据: {buffer}")
+            # delete_conversation(conversation_id, api_key)
+            try:
+                buffer_json = json.loads(buffer)
+                error_message = buffer_json.get("detail", {}).get("message", "未知错误")
+                if error_message == "未知错误":
+                    logger.error(f"未识别到具体的错误消息，响应内容: {buffer_json}")
+                error_data = {
+                            "id": chat_message_id,
+                            "object": "chat.completion.chunk",
+                            "created": timestamp,
+                            "model": "error",
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {
+                                        "content": ''.join("```\n" + error_message + "\n```")
+                                    },
+                                    "finish_reason": None
+                                }
+                            ]
+                        }
+                tmp = 'data: ' + json.dumps(error_data) + '\n\n'
+                logger.info(f"发送最后的数据: {tmp}")
+                # 累积 new_text
+                all_new_text += ''.join("```\n" + error_message + "\n```")
+                q_data = 'data: ' + json.dumps(error_data) + '\n\n'
+                data_queue.put(q_data)
+                last_data_time[0] = time.time()
+                complete_data = 'data: [DONE]\n\n'
+                logger.info(f"会话结束")
+                q_data = complete_data
+                data_queue.put(('all_new_text', all_new_text))
+                data_queue.put(q_data)
+                last_data_time[0] = time.time()
+            except:
+                # print("JSON 解析错误")
+                logger.info(f"发送最后的数据: {buffer}")
+                error_data = {
+                            "id": chat_message_id,
+                            "object": "chat.completion.chunk",
+                            "created": timestamp,
+                            "model": "error",
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {
+                                        "content": ''.join("```\n" + buffer + "\n```")
+                                    },
+                                    "finish_reason": None
+                                }
+                            ]
+                        }
+                tmp = 'data: ' + json.dumps(error_data) + '\n\n'
+                q_data =  tmp
+                data_queue.put(q_data)
+                last_data_time[0] = time.time()
+                complete_data = 'data: [DONE]\n\n'
+                logger.info(f"会话结束")
+                q_data = complete_data
+                data_queue.put(('all_new_text', all_new_text))
+                data_queue.put(q_data)
+                last_data_time[0] = time.time()
+    except Exception as e:
+        logger.error(f"Exception: {e}")
+        complete_data = 'data: [DONE]\n\n'
+        logger.info(f"会话结束")
+        q_data = complete_data
+        data_queue.put(('all_new_text', all_new_text))
         data_queue.put(q_data)
         last_data_time[0] = time.time()
-    if buffer:
-        # print(f"最后的数据: {buffer}")
-        # delete_conversation(conversation_id, api_key)
-        try:
-            buffer_json = json.loads(buffer)
-            error_message = buffer_json.get("detail", {}).get("message", "未知错误")
-            if error_message == "未知错误":
-                logger.error(f"未识别到具体的错误消息，响应内容: {buffer_json}")
-            error_data = {
-                        "id": chat_message_id,
-                        "object": "chat.completion.chunk",
-                        "created": timestamp,
-                        "model": "error",
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {
-                                    "content": ''.join("```\n" + error_message + "\n```")
-                                },
-                                "finish_reason": None
-                            }
-                        ]
-                    }
-            tmp = 'data: ' + json.dumps(error_data) + '\n\n'
-            logger.info(f"发送最后的数据: {tmp}")
-            # 累积 new_text
-            all_new_text += ''.join("```\n" + error_message + "\n```")
-            q_data = 'data: ' + json.dumps(error_data) + '\n\n'
-            data_queue.put(q_data)
-            last_data_time[0] = time.time()
-            complete_data = 'data: [DONE]\n\n'
-            logger.info(f"会话结束")
-            q_data = complete_data
-            data_queue.put(('all_new_text', all_new_text))
-            data_queue.put(q_data)
-            last_data_time[0] = time.time()
-        except:
-            # print("JSON 解析错误")
-            logger.info(f"发送最后的数据: {buffer}")
-            error_data = {
-                        "id": chat_message_id,
-                        "object": "chat.completion.chunk",
-                        "created": timestamp,
-                        "model": "error",
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {
-                                    "content": ''.join("```\n" + buffer + "\n```")
-                                },
-                                "finish_reason": None
-                            }
-                        ]
-                    }
-            tmp = 'data: ' + json.dumps(error_data) + '\n\n'
-            q_data =  tmp
-            data_queue.put(q_data)
-            last_data_time[0] = time.time()
-            complete_data = 'data: [DONE]\n\n'
-            logger.info(f"会话结束")
-            q_data = complete_data
-            data_queue.put(('all_new_text', all_new_text))
-            data_queue.put(q_data)
-            last_data_time[0] = time.time()
 
 def keep_alive(last_data_time, stop_event, queue, model,  chat_message_id):
     while not stop_event.is_set():
