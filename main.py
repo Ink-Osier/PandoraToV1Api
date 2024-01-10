@@ -69,7 +69,7 @@ DALLE_PROMPT_PREFIX = CONFIG.get('dalle_prompt_prefix', '')
 
 # redis配置读取
 REDIS_CONFIG = CONFIG.get('redis', {})
-REDIS_CONFIG_HOST = REDIS_CONFIG.get('host', 'localhost')
+REDIS_CONFIG_HOST = REDIS_CONFIG.get('host', 'redis')
 REDIS_CONFIG_PORT = REDIS_CONFIG.get('port', 6379)
 REDIS_CONFIG_PASSWORD = REDIS_CONFIG.get('password', '')
 REDIS_CONFIG_DB = REDIS_CONFIG.get('db', 0)
@@ -197,9 +197,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.9'
+VERSION = '0.4.10'
 # VERSION = 'test'
-UPDATE_INFO = '尝试解决未知错误引起的会话中断导致对话记录删除失败的问题'
+UPDATE_INFO = '支持自定义Redis配置'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
