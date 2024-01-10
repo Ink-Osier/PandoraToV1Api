@@ -18,7 +18,7 @@ RUN apt update && apt install -y jq
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 安装任何所需的依赖项
-RUN pip install --no-cache-dir flask gunicorn requests Pillow flask-cors tiktoken fake_useragent
+RUN pip install --no-cache-dir flask gunicorn requests Pillow flask-cors tiktoken fake_useragent redis
 
 # 在容器启动时运行 Flask 应用
 CMD ["/app/start.sh"]

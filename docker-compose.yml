@@ -11,4 +11,10 @@ services:
       - ./images:/app/images
       - ./data:/app/data
       - ./files:/app/files
+  
+  redis:
+    image: "redis:alpine"
+    command: redis-server --appendonly yes
+    volumes:
+      - ./redis-data:/data
     

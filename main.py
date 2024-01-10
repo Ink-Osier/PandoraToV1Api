@@ -187,15 +187,13 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.7'
+VERSION = '0.4.8'
 # VERSION = 'test'
-UPDATE_INFO = '支持绘图失败的错误输出'
+UPDATE_INFO = '基于Redis减少重复文件的上传，优化响应速度'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
     global gpts_configurations  # 移到作用域的最开始
-
-    
 
     # 输出版本信息
     logger.info(f"==========================================")
@@ -454,10 +452,43 @@ def upload_file(file_content, mime_type, api_key):
         "height": height
     }
 
+import redis
+
+# 假设您已经有一个Redis客户端的实例
+file_redis_client = redis.StrictRedis(host='redis', port=6379, db=0)
 def get_file_metadata(file_content, mime_type, api_key):
     sha256_hash = hashlib.sha256(file_content).hexdigest()
     logger.debug(f"sha256_hash: {sha256_hash}")
+    # 首先尝试从Redis中获取数据
+    cached_data = file_redis_client.get(sha256_hash)
+    if cached_data is not None:
+        # 如果在Redis中找到了数据，解码后直接返回
+        logger.info(f"从Redis中获取到文件缓存数据")
+        cache_file_data = json.loads(cached_data.decode())
 
+        tag = True
+        file_id = cache_file_data.get("file_id")
+        # 检测之前的文件是否仍然有效
+        check_url = f"{BASE_URL}{PROXY_API_PREFIX}/backend-api/files/{file_id}/uploaded"
+        headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+        check_response = requests.post(check_url, json={}, headers=headers)
+        logger.debug(f"check_response: {check_response.text}")
+        if check_response.status_code != 200:
+            tag = False
+
+        check_data = check_response.json()
+        if check_data.get("status") != "success":
+            tag = False
+        if tag:
+            logger.info(f"Redis中的文件缓存数据有效，将使用缓存数据")
+            return cache_file_data
+        else:
+            logger.info(f"Redis中的文件缓存数据已失效，重新上传文件")
+
+    else:
+        logger.info(f"Redis中没有找到文件缓存数据")
     # 如果Redis中没有，上传文件并保存新数据
     new_file_data = upload_file(file_content, mime_type, api_key)
     mime_type = new_file_data.get('mimeType')
@@ -466,6 +497,9 @@ def get_file_metadata(file_content, mime_type, api_key):
         width, height = get_image_dimensions(file_content)
         new_file_data['width'] = width
         new_file_data['height'] = height
+
+    # 将新的文件数据存入Redis
+    file_redis_client.set(sha256_hash, json.dumps(new_file_data))
 
     return new_file_data
 
@@ -786,7 +820,9 @@ def replace_complete_citation(text, citations):
                     return f"[[{citation_number}]({url})]"
                 else:
                     return ""
-        return match.group(0)  # 如果没有找到对应的引用，返回原文本
+        # return match.group(0)  # 如果没有找到对应的引用，返回原文本
+        logger.critical(f"没有找到对应的引用，舍弃{match.group(0)}引用")
+        return ""
 
     # 使用 finditer 找到第一个匹配项
     match_iter = re.finditer(r'\u3010(\d+)\u2020(source|\u6765\u6e90)\u3011', text)
@@ -1378,7 +1414,23 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
         except:
             # print("JSON 解析错误")
             logger.info(f"发送最后的数据: {buffer}")
-            q_data =  buffer
+            error_data = {
+                        "id": chat_message_id,
+                        "object": "chat.completion.chunk",
+                        "created": timestamp,
+                        "model": "error",
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {
+                                    "content": ''.join("```\n" + buffer + "\n```")
+                                },
+                                "finish_reason": None
+                            }
+                        ]
+                    }
+            tmp = 'data: ' + json.dumps(error_data) + '\n\n'
+            q_data =  tmp
             data_queue.put(q_data)
             last_data_time[0] = time.time()
             complete_data = 'data: [DONE]\n\n'
