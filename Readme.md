@@ -136,6 +136,16 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
     - `enabled_bing_reference_output`: 用于设置是否开启 Bot 模式下联网插件的引用输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出联网插件的引用，仅在 `bot_mode.enabled` 为 `true` 时生效。
 
     - `enabled_plugin_output`: 用于设置是否开启 Bot 模式下插件执行过程的输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出插件执行过程的输出，仅在 `bot_mode.enabled` 为 `true` 时生效。
+  
+- `redis`
+
+    - `host`: Redis的ip地址，例如：1.2.3.4，默认是127.0.0.1
+
+    - `port`: Redis的端口，默认：6379，如有特殊需求，你可以将此值设置为其他端口
+
+    - `password`: Redis的密码，默认为空，如果你的Redis服务设置了密码，请将其设置为你的密码
+
+    - `db`: Redis的数据库，默认：0，如有特殊需求，你可以将此值设置为其他数据库
 
 ## GPTS配置说明
 
