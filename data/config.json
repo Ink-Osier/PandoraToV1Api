@@ -23,5 +23,13 @@
         "enabled_plain_image_url_output": "false",
         "enabled_bing_reference_output": "false",
         "enabled_plugin_output": "false"
+    },
+    "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "password": "",
+        "db": 0,
+        "pool_size": 10,
+        "pool_timeout": 60000
     }
 }

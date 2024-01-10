@@ -67,6 +67,16 @@ ARKOSE_URLS = CONFIG.get('arkose_urls', "")
 
 DALLE_PROMPT_PREFIX = CONFIG.get('dalle_prompt_prefix', '')
 
+# redis配置读取
+REDIS_CONFIG = CONFIG.get('redis', {})
+REDIS_CONFIG_HOST = REDIS_CONFIG.get('host', 'localhost')
+REDIS_CONFIG_PORT = REDIS_CONFIG.get('port', 6379)
+REDIS_CONFIG_PASSWORD = REDIS_CONFIG.get('password', '')
+REDIS_CONFIG_DB = REDIS_CONFIG.get('db', 0)
+REDIS_CONFIG_POOL_SIZE = REDIS_CONFIG.get('pool_size', 10)
+REDIS_CONFIG_POOL_TIMEOUT = REDIS_CONFIG.get('pool_timeout', 30)
+
+
 # 设置日志级别
 log_level_dict = {
     'DEBUG': logging.DEBUG,
@@ -455,7 +465,12 @@ def upload_file(file_content, mime_type, api_key):
 import redis
 
 # 假设您已经有一个Redis客户端的实例
-file_redis_client = redis.StrictRedis(host='redis', port=6379, db=0)
+file_redis_client = redis.StrictRedis(host=REDIS_CONFIG_HOST,
+                                      port=REDIS_CONFIG_PORT,
+                                      password=REDIS_CONFIG_PASSWORD,
+                                      db=REDIS_CONFIG_DB,
+                                      retry_on_timeout=True
+                                      )
 def get_file_metadata(file_content, mime_type, api_key):
     sha256_hash = hashlib.sha256(file_content).hexdigest()
     logger.debug(f"sha256_hash: {sha256_hash}")
