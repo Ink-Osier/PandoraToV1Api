@@ -139,7 +139,7 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
   
 - `redis`
 
-    - `host`: Redis的ip地址，例如：1.2.3.4，默认是127.0.0.1
+    - `host`: Redis的ip地址，例如：1.2.3.4，默认是 redis 容器
 
     - `port`: Redis的端口，默认：6379，如有特殊需求，你可以将此值设置为其他端口
 
