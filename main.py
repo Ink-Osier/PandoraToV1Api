@@ -197,9 +197,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.4.10'
+VERSION = '0.5.0'
 # VERSION = 'test'
-UPDATE_INFO = '支持自定义Redis配置'
+UPDATE_INFO = '优化会话删除机制，使得对话生成过程中也不会出现对话记录'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -735,6 +735,10 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
             payload = generate_gpts_payload(model, formatted_messages)
             if not payload:
                 raise Exception('model is not accessible')
+        # 根据NEED_DELETE_CONVERSATION_AFTER_RESPONSE修改history_and_training_disabled
+        if NEED_DELETE_CONVERSATION_AFTER_RESPONSE:
+            logger.debug(f"是否保留会话: {NEED_DELETE_CONVERSATION_AFTER_RESPONSE == False}")
+            payload['history_and_training_disabled'] = True
         if ori_model_name != 'gpt-3.5-turbo':
             if CUSTOM_ARKOSE:
                 token = get_token()
@@ -1621,9 +1625,9 @@ def chat_completions():
             fetcher_thread.join()
             keep_alive_thread.join()
 
-            if conversation_id:
-                # print(f"准备删除的会话id： {conversation_id}")
-                delete_conversation(conversation_id, api_key)     
+            # if conversation_id:
+            #     # print(f"准备删除的会话id： {conversation_id}")
+            #     delete_conversation(conversation_id, api_key)     
             
 
     if not stream:
@@ -2005,7 +2009,7 @@ def images_generations():
             yield 'data: ' + json.dumps(new_data) + '\n\n'
         if buffer:
             # print(f"最后的数据: {buffer}")
-            delete_conversation(conversation_id, api_key)
+            # delete_conversation(conversation_id, api_key)
             try:
                 buffer_json = json.loads(buffer)
                 error_message = buffer_json.get("detail", {}).get("message", "未知错误")
@@ -2034,7 +2038,7 @@ def images_generations():
                 logger.info(f"发送最后的数据: {buffer}")
                 yield buffer
 
-        delete_conversation(conversation_id, api_key)   
+        # delete_conversation(conversation_id, api_key)   
             
     # 执行流式响应的生成函数来累积 all_new_text
     # 迭代生成器对象以执行其内部逻辑
