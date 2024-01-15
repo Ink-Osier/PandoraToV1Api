@@ -197,9 +197,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.5.0'
+VERSION = '0.5.1'
 # VERSION = 'test'
-UPDATE_INFO = '优化会话删除机制，使得对话生成过程中也不会出现对话记录'
+UPDATE_INFO = '优化错误日志'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -1400,9 +1400,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
             # delete_conversation(conversation_id, api_key)
             try:
                 buffer_json = json.loads(buffer)
+                logger.info(f"最后的缓存数据: {buffer_json}")
                 error_message = buffer_json.get("detail", {}).get("message", "未知错误")
-                if error_message == "未知错误":
-                    logger.error(f"未识别到具体的错误消息，响应内容: {buffer_json}")
                 error_data = {
                             "id": chat_message_id,
                             "object": "chat.completion.chunk",
