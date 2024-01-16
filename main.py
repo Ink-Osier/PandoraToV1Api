@@ -197,9 +197,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.5.1'
+VERSION = '0.5.2'
 # VERSION = 'test'
-UPDATE_INFO = '优化错误日志'
+UPDATE_INFO = '支持中断流式响应'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -973,6 +973,9 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
     execution_output_image_id_buffer = ""
     try:
         for chunk in upstream_response.iter_content(chunk_size=1024):
+            if stop_event.is_set():
+                logger.info(f"接受到停止信号，停止数据处理线程")
+                break
             if chunk:
                 buffer += chunk.decode('utf-8')
                 # 检查是否存在 "event: ping"，如果存在，则只保留 "data:" 后面的内容
@@ -1492,6 +1495,9 @@ def keep_alive(last_data_time, stop_event, queue, model,  chat_message_id):
             last_data_time[0] = time.time()
         time.sleep(1)
 
+    if stop_event.is_set():
+        logger.debug(f"接受到停止信号，停止保活线程")
+        return
 
 import tiktoken
 
