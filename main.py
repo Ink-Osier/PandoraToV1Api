@@ -197,9 +197,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.5.2'
+VERSION = '0.5.3'
 # VERSION = 'test'
-UPDATE_INFO = '支持中断流式响应'
+UPDATE_INFO = '修复会打广告的GPTS重复输出文字的bug'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -1138,7 +1138,8 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
                                 parts = content.get("parts", [])
                                 full_text = ''.join(parts)
                                 new_text = full_text[len(last_full_text):]
-                                last_full_text = full_text  # 更新完整文本以备下次比较
+                                if full_text != '':
+                                    last_full_text = full_text  # 更新完整文本以备下次比较
                                 if "\u3010" in new_text and not citation_accumulating:
                                     citation_accumulating = True
                                     citation_buffer = citation_buffer + new_text
