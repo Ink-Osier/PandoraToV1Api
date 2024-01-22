@@ -1,8 +1,10 @@
 ## 项目简介
 
-> [!WARNING]
+> [!IMPORTANT]
 >
-> OpenAI 风控回落，PandoraNext 恢复正常使用，本项目也恢复正常使用，但是请自行考虑使用风险。
+> 鉴于Zhile大佬的Pandora项目停更，本项目也将暂时暂停更新，感谢大家对项目的支持，后续如有优秀的代理项目出现，将会考虑继续更新。
+>
+> Respect Zhile大佬！
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
