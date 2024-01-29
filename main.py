@@ -36,8 +36,8 @@ LOG_LEVEL = CONFIG.get('log_level', 'DEBUG').upper()
 NEED_LOG_TO_FILE = CONFIG.get('need_log_to_file', 'true').lower() == 'true'
 
 # 使用 get 方法获取配置项，同时提供默认值
-BASE_URL = CONFIG.get('pandora_base_url', '')
-PROXY_API_PREFIX = CONFIG.get('pandora_api_prefix', '')
+BASE_URL = CONFIG.get('upstream_base_url', '')
+PROXY_API_PREFIX = CONFIG.get('upstream_api_prefix', '')
 if PROXY_API_PREFIX != '':
     PROXY_API_PREFIX = "/" + PROXY_API_PREFIX
 UPLOAD_BASE_URL = CONFIG.get('backend_container_url', '')
@@ -59,7 +59,7 @@ NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_a
 
 USE_OAIUSERCONTENT_URL = CONFIG.get('use_oaiusercontent_url', 'false').lower() == 'true'
 
-USE_PANDORA_FILE_SERVER = CONFIG.get('use_pandora_file_server', 'false').lower() == 'true'
+# USE_PANDORA_FILE_SERVER = CONFIG.get('use_pandora_file_server', 'false').lower() == 'true'
 
 CUSTOM_ARKOSE = CONFIG.get('custom_arkose_url', 'false').lower() == 'true'
 
@@ -194,12 +194,12 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 
 
 
-PANDORA_UPLOAD_URL = 'files.pandoranext.com'
+# PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.5.3'
+VERSION = '0.6.0'
 # VERSION = 'test'
-UPDATE_INFO = '修复会打广告的GPTS重复输出文字的bug'
+UPDATE_INFO = '去除PandoraNext相关服务依赖选项，并修改部分配置名，Respect Pandora！'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -225,13 +225,13 @@ with app.app_context():
 
 
     if not BASE_URL:
-        raise Exception('pandora_base_url is not set')
+        raise Exception('upstream_base_url is not set')
     else:
-        logger.info(f"pandora_base_url: {BASE_URL}")
+        logger.info(f"upstream_base_url: {BASE_URL}")
     if not PROXY_API_PREFIX:
-        logger.warning('pandora_api_prefix is not set')
+        logger.warning('upstream_api_prefix is not set')
     else:
-        logger.info(f"pandora_api_prefix: {PROXY_API_PREFIX}")
+        logger.info(f"upstream_api_prefix: {PROXY_API_PREFIX}")
 
     if USE_OAIUSERCONTENT_URL == False:
         # 检测./images和./files文件夹是否存在，不存在则创建
@@ -269,7 +269,7 @@ with app.app_context():
     
     logger.info(f"use_oaiusercontent_url: {USE_OAIUSERCONTENT_URL}")
 
-    logger.info(f"use_pandora_file_server: {USE_PANDORA_FILE_SERVER}")
+    logger.info(f"use_pandora_file_server: False")
 
     logger.info(f"custom_arkose_url: {CUSTOM_ARKOSE}")
 
@@ -422,11 +422,7 @@ def upload_file(file_content, mime_type, api_key):
         raise Exception("Failed to get upload URL")
 
     upload_data = upload_response.json()
-    # 获取上传 URL 并替换域名
-    parsed_url = urlparse(upload_data.get("upload_url"))
-    new_netloc = PANDORA_UPLOAD_URL
-    new_url = urlunparse(parsed_url._replace(netloc=new_netloc))
-    upload_url = new_url
+    upload_url = upload_data.get("upload_url")
     logger.debug(f"upload_url: {upload_url}")
     file_id = upload_data.get("file_id")
     logger.debug(f"file_id: {file_id}")
@@ -893,8 +889,6 @@ def replace_sandbox(text, conversation_id, message_id, api_key):
     def replace_match(match):
         sandbox_path = match.group(1)
         download_url = get_download_url(conversation_id, message_id, sandbox_path)
-        if USE_PANDORA_FILE_SERVER == True:
-            download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
         file_name = extract_filename(download_url)
         timestamped_file_name = timestamp_filename(file_name)
         if USE_OAIUSERCONTENT_URL == False:
@@ -1050,8 +1044,6 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
 
                                     if image_response.status_code == 200:
                                         download_url = image_response.json().get('download_url')
-                                        if USE_PANDORA_FILE_SERVER == True:
-                                            download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
                                         logger.debug(f"download_url: {download_url}")
                                         if USE_OAIUSERCONTENT_URL == True:
                                             if ((BOT_MODE_ENABLED == False) or (BOT_MODE_ENABLED == True and BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT == True)):
@@ -1283,8 +1275,6 @@ def data_fetcher(upstream_response, data_queue, stop_event, last_data_time, api_
 
                                                 if image_response.status_code == 200:
                                                     download_url = image_response.json().get('download_url')
-                                                    if USE_PANDORA_FILE_SERVER == True:
-                                                        download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
                                                     logger.debug(f"download_url: {download_url}")
                                                     if USE_OAIUSERCONTENT_URL == True:
                                                         execution_output_image_url_buffer = download_url
@@ -1806,8 +1796,6 @@ def images_generations():
 
                                     if image_response.status_code == 200:
                                         download_url = image_response.json().get('download_url')
-                                        if USE_PANDORA_FILE_SERVER == True:
-                                            download_url = download_url.replace("files.oaiusercontent.com", "files.pandoranext.com")
                                         logger.debug(f"download_url: {download_url}")
                                         if USE_OAIUSERCONTENT_URL == True and response_format == "url":
                                             image_link = f"{download_url}"
