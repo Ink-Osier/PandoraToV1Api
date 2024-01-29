@@ -889,6 +889,8 @@ def replace_sandbox(text, conversation_id, message_id, api_key):
     def replace_match(match):
         sandbox_path = match.group(1)
         download_url = get_download_url(conversation_id, message_id, sandbox_path)
+        if download_url == None:
+            return "\n```\nError: 沙箱文件下载失败，这可能是因为您启用了隐私模式\n```"
         file_name = extract_filename(download_url)
         timestamped_file_name = timestamp_filename(file_name)
         if USE_OAIUSERCONTENT_URL == False:
