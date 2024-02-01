@@ -363,6 +363,14 @@ services:
 
 [![Contributors](https://contrib.rocks/image?repo=Ink-Osier/PandoraToV1Api)](https://github.com/Ink-Osier/PandoraToV1Api/graphs/contributors)
 
+## 平台推荐
+
+> [Cloudflare](https://www.cloudflare.com/)
+
+世界领先的互联网基础设施和安全公司，为您的网站提供 CDN、DNS、DDoS 保护和安全性服务，可以帮助你的项目尽可能避免遭受网络攻击或爬虫行为。
+[![Cloudflare](https://www.cloudflare.com/img/logo-cloudflare.svg)](https://www.cloudflare.com/)
+
+
 ## Star 历史
 
 ![Stargazers over time](https://api.star-history.com/svg?repos=Ink-Osier/PandoraToV1Api&type=Date)
