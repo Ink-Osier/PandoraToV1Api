@@ -3,6 +3,7 @@
     "need_log_to_file": "true",
     "process_workers": 2,
     "process_threads": 2,
+    "proxy": "",
     "upstream_base_url": "",
     "upstream_api_prefix": "",
     "backend_container_url": "",
