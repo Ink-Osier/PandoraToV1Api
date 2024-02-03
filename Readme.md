@@ -2,9 +2,7 @@
 
 > [!IMPORTANT]
 >
-> 鉴于Zhile大佬的Pandora项目停更，本项目也将暂时暂停更新，感谢大家对项目的支持，后续如有优秀的代理项目出现，也许会考虑回坑。
->
-> Respect Zhile大佬！
+> Respect Zhile大佬, Respect Pandora！
 
 为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
 
