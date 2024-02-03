@@ -91,6 +91,17 @@ log_formatter = logging.Formatter('%(asctime)s [%(levelname)s] - %(message)s')
 logger = logging.getLogger()
 logger.setLevel(log_level_dict.get(LOG_LEVEL, logging.DEBUG))
 
+
+import redis
+
+# 假设您已经有一个Redis客户端的实例
+redis_client = redis.StrictRedis(host=REDIS_CONFIG_HOST,
+                    port=REDIS_CONFIG_PORT,
+                    password=REDIS_CONFIG_PASSWORD,
+                    db=REDIS_CONFIG_DB,
+                    retry_on_timeout=True
+                    )
+
 # 如果环境变量指示需要输出到文件
 if NEED_LOG_TO_FILE:
     log_filename = './log/access.log'
@@ -155,7 +166,21 @@ def add_config_to_global_list(base_url, proxy_api_prefix, gpts_data):
         # print(f"model_name: {model_name}")
         # print(f"model_info: {model_info}")
         model_id = model_info['id']
-        gizmo_info = fetch_gizmo_info(base_url, proxy_api_prefix, model_id)
+
+        # 首先尝试从 Redis 获取缓存数据
+        cached_gizmo_info = redis_client.get(model_id)
+
+        if cached_gizmo_info:
+            gizmo_info = eval(cached_gizmo_info)  # 将字符串转换回字典
+            logger.info(f"Using cached info for {model_name}, {model_id}")
+        else:
+            logger.info(f"Fetching gpts info for {model_name}, {model_id}")
+            gizmo_info = fetch_gizmo_info(base_url, proxy_api_prefix, model_id)
+
+            # 如果成功获取到数据，则将其存入 Redis
+            if gizmo_info:
+                redis_client.set(model_id, str(gizmo_info))
+                logger.info(f"Cached gizmo info for {model_name}, {model_id}")
         if gizmo_info:
             gpts_configurations.append({
                 'name': model_name,
@@ -197,9 +222,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 # PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.7.4'
+VERSION = '0.7.5'
 # VERSION = 'test'
-UPDATE_INFO = '优化wss连接时机'
+UPDATE_INFO = '支持缓存GPTS配置'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
@@ -458,20 +483,11 @@ def upload_file(file_content, mime_type, api_key):
         "height": height
     }
 
-import redis
-
-# 假设您已经有一个Redis客户端的实例
-file_redis_client = redis.StrictRedis(host=REDIS_CONFIG_HOST,
-                                      port=REDIS_CONFIG_PORT,
-                                      password=REDIS_CONFIG_PASSWORD,
-                                      db=REDIS_CONFIG_DB,
-                                      retry_on_timeout=True
-                                      )
 def get_file_metadata(file_content, mime_type, api_key):
     sha256_hash = hashlib.sha256(file_content).hexdigest()
     logger.debug(f"sha256_hash: {sha256_hash}")
     # 首先尝试从Redis中获取数据
-    cached_data = file_redis_client.get(sha256_hash)
+    cached_data = redis_client.get(sha256_hash)
     if cached_data is not None:
         # 如果在Redis中找到了数据，解码后直接返回
         logger.info(f"从Redis中获取到文件缓存数据")
@@ -510,7 +526,7 @@ def get_file_metadata(file_content, mime_type, api_key):
         new_file_data['height'] = height
 
     # 将新的文件数据存入Redis
-    file_redis_client.set(sha256_hash, json.dumps(new_file_data))
+    redis_client.set(sha256_hash, json.dumps(new_file_data))
 
     return new_file_data
 
