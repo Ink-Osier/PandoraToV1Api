@@ -291,7 +291,7 @@ with app.app_context():
     ip_info = parse_oai_ip_info()
     logger.info(f"The ip you are using to access oai is: {ip_info['ip']}")
     logger.info(f"The location of this ip is: {ip_info['loc']}")
-    logger.info(f"The colo of this ip is: {ip_info['colo']}")
+    logger.info(f"The colo is: {ip_info['colo']}")
     logger.info(f"Is this ip a Warp ip: {ip_info['warp']}")
 
     # 输出版本信息
