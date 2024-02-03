@@ -197,9 +197,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 # PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.7.2'
+VERSION = '0.7.3'
 # VERSION = 'test'
-UPDATE_INFO = '同时支持wss和sse响应'
+UPDATE_INFO = '优化检测是否为sse的方式'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 with app.app_context():
