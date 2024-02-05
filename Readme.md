@@ -134,6 +134,8 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
     - `enabled_plugin_output`: 用于设置是否开启 Bot 模式下插件执行过程的输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出插件执行过程的输出，仅在 `bot_mode.enabled` 为 `true` 时生效。
 
 - `refresh_ToAccess`
+
+    - `stream_sleep_time`:用于设置流式传输时，每条输出的数据间隔时间，单位秒。
   
     - `enableOai`:用于设置是否使用官网通过refresh_token刷新access_token，仅在 `enableOai` 为 `true` 时生效。
       
