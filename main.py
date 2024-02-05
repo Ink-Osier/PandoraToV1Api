@@ -61,9 +61,12 @@ BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT = BOT_MODE.get('enabled_plugin_output', 'fals
 
 BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT = BOT_MODE.get('enabled_plain_image_url_output', 'false').lower() == 'true'
 
+# ninjaToV1Api_refresh
 REFRESH_TOACCESS = CONFIG.get('refresh_ToAccess', {})
 REFRESH_TOACCESS_ENABLEOAI = REFRESH_TOACCESS.get('enableOai', 'true').lower() == 'true'
 REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL = REFRESH_TOACCESS.get('ninja_refreshToAccess_Url', '')
+STEAM_SLEEP_TIME = REFRESH_TOACCESS.get('steam_sleep_time', '0.1')
+
 
 NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_after_response',
                                                      'true').lower() == 'true'
@@ -334,6 +337,12 @@ with app.app_context():
         logger.info(f"enabled_bing_reference_output: {BOT_MODE_ENABLED_BING_REFERENCE_OUTPUT}")
         logger.info(f"enabled_plugin_output: {BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT}")
 
+    # ninjaToV1Api_refresh
+    
+    logger.info(f"REFRESH_TOACCESS_ENABLEOAI: {REFRESH_TOACCESS_ENABLEOAI}")
+    logger.info(f"REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL: {REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL}")
+    logger.info(f"STEAM_SLEEP_TIME: {STEAM_SLEEP_TIME}")
+    
     if not BASE_URL:
         raise Exception('upstream_base_url is not set')
     else:
@@ -2312,7 +2321,9 @@ def chat_completions():
                 else:
                     # logger.debug(f"发出数据: {data}")
                     yield data
-
+                # STEAM_SLEEP_TIME 优化传输质量，改善卡顿现象
+                if stream and STEAM_SLEEP_TIME > 0:
+                    time.sleep(STEAM_SLEEP_TIME)
         finally:
             logger.debug(f"清理资源")
             stop_event.set()
