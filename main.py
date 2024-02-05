@@ -324,6 +324,10 @@ with app.app_context():
 
     logger.info(f"BOT_MODE_ENABLED: {BOT_MODE_ENABLED}")
 
+    logger.info(f"REFRESH_TOACCESS_ENABLEOAI: {REFRESH_TOACCESS_ENABLEOAI}")
+    if not REFRESH_TOACCESS_ENABLEOAI:
+        logger.info(f"REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL: {REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL}")
+
     if BOT_MODE_ENABLED:
         logger.info(f"enabled_markdown_image_output: {BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT}")
         logger.info(f"enabled_plain_image_url_output: {BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT}")
@@ -2139,6 +2143,7 @@ def count_total_input_words(messages, model):
 
 # 官方refresh_token刷新access_token
 def oaiGetAccessToken(refresh_token):
+    logger.info("将通过这个网址请求access_token：https://auth0.openai.com/oauth/token")
     url = "https://auth0.openai.com/oauth/token"
     headers = {
         "Content-Type": "application/json"
@@ -2223,6 +2228,7 @@ def chat_completions():
     api_key = auth_header.split(' ')[1]
     if not api_key.startswith("eyJhb"):
         if api_key in refresh_dict:
+            logger.info(f"从缓存读取到api_key.........。")
             api_key = refresh_dict.get(api_key)
         else:
             if REFRESH_TOACCESS_ENABLEOAI:
@@ -2385,8 +2391,8 @@ def images_generations():
     api_key = auth_header.split(' ')[1]
     if not api_key.startswith("eyJhb"):
         if api_key in refresh_dict:
+            logger.info(f"从缓存读取到api_key.........")
             api_key = refresh_dict.get(api_key)
-
         else:
             if REFRESH_TOACCESS_ENABLEOAI:
                 refresh_token = api_key
