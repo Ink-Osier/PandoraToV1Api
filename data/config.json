@@ -25,6 +25,7 @@
         "enabled_plugin_output": "false"
     },
     "refresh_ToAccess": {
+        "stream_sleep_time": 0,
         "enableOai":"true",
         "ninja_refreshToAccess_Url": ""
     },
