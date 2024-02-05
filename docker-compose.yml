@@ -2,7 +2,7 @@ version: '3'
 
 services:
   backend-to-api:
-    image: wizerd/pandora-to-api:latest
+    image: yangclivia/pandora-to-api:latest
     restart: always
     ports:
       - "50011:33333"

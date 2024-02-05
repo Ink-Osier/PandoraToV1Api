@@ -2,21 +2,19 @@
 
 > [!IMPORTANT]
 >
-> Respect Zhile大佬, Respect Pandora！
+> Respect Zhile大佬 , Respect Wizerd！
 
-为了方便大家将 [Pandora-Next](https://github.com/pandora-next/deploy) 项目与各种其他项目结合完成了本项目。
+感谢pandoraNext和Wizerd的付出，敬礼！！！
 
 本项目支持：
 
-1. 将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应。
+1. 将 ninja  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应。
 
-2. 将 Pandora-Next  `proxy` 模式下的 `backend-api` 转为 `/v1/images/generations` 接口
-
-如果你想要尝试自己生成Arkose Token从而将PandoraNext的额度消耗降低到`1:4`，你可以看看这个项目：[GenerateArkose](https://github.com/Ink-Osier/GenerateArkose)，但是请注意，**该项目并不保证使用该项目生成的Arkose Token不会封号，使用该项目造成的一切后果由使用者自行承担**。
+2. 将 ninja  `proxy` 模式下的 `backend-api` 转为 `/v1/images/generations` 接口
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
-如果有什么在项目的使用过程中的疑惑或需求，欢迎提 `Issue`，或者加入 Community Telegram Channel: [Inker 的魔法世界](https://t.me/InkerWorld) 来和大家一起交流一下~
+如果有什么在项目的使用过程中的疑惑或需求，欢迎加入 Community Telegram Channel: [Inker 的魔法世界](https://t.me/InkerWorld) 来和大家一起交流一下~
 
 ## 更新日志
 
@@ -57,15 +55,13 @@
 ## 注意
 
 > [!CAUTION]
-> 1. 本项目的运行需要 Pandora-Next 开启 `auto_conv_arkose:true`，同时请尽量升级最新版本的 Pandora-Next，以确保支持此功能。
+> 1. 本项目的运行需要 ninja 
 >
-> 2. 本项目对话次数对Pandora-Next的对话额度消耗比例为：
->     - `gpt-4-s`、`gpt-4-mobile`、`GPTS`：`1:14`；
->     - `gpt-3.5-turbo`：`1:4`；
+> 2. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到ninja的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
 >
-> 3. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到Pandora-Next的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
+> 3. 本项目支持使用apple平台的refresh_token作为请求key. 
 >
-> 4. 本项目并不能绕过 OpenAI 和 PandoraNext 官方的限制，只提供便利，不提供绕过。
+> 4. 本项目并不能绕过 OpenAI 和 ninja 官方的限制，只提供便利，不提供绕过。
 >
 > 5. 提问的艺术：当出现项目不能正常运行时，请携带 `DEBUG` 级别的日志在 `Issue` 或者社区群内提问，否则将开启算命模式~
 
@@ -95,9 +91,9 @@
 
 - `process_threads`: 用于设置线程数，如果不需要设置，可以保持不变，如果需要设置，可以设置为需要设置的值，如果设置为 `1`，则会强制设置为单线程模式。
 
-- `pandora_base_url`: Pandora-Next 的部署地址，如：`https://pandoranext.com`，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
+- `upstream_base_url`: ninja 的部署地址，如：`https://pandoranext.com`，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
 
-- `pandora_api_prefix`: PandoraNext Proxy 模式下的 API 前缀
+- `upstream_api_prefix`: PandoraNext Proxy 模式下的 API 前缀
 
 - `backend_container_url`: 用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：`http://1.2.3.4:50011`，同原环境变量中的 `UPLOAD_BASE_URL`
 
@@ -136,7 +132,13 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
     - `enabled_bing_reference_output`: 用于设置是否开启 Bot 模式下联网插件的引用输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出联网插件的引用，仅在 `bot_mode.enabled` 为 `true` 时生效。
 
     - `enabled_plugin_output`: 用于设置是否开启 Bot 模式下插件执行过程的输出，可选值为：`true`、`false`，默认为 `false`，开启后，将会输出插件执行过程的输出，仅在 `bot_mode.enabled` 为 `true` 时生效。
+
+- `refresh_ToAccess`
   
+    - `enableOai`:用于设置是否使用官网通过refresh_token刷新access_token，仅在 `enableOai` 为 `true` 时生效。
+      
+    - `ninja_refreshToAccess_Url`:用于设置使用ninja来进行使用refresh_token刷新access_token,enableOai为false的时候必填。
+
 - `redis`
 
     - `host`: Redis的ip地址，例如：1.2.3.4，默认是 redis 容器
@@ -174,7 +176,7 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
 
 请求方式：`POST`
 
-请求头：正常携带 `Authorization` 和 `Content-Type` 即可，`Authorization` 的值为 `Bearer <Pandora-Next 的 fk>`，`Content-Type` 的值为 `application/json`
+请求头：正常携带 `Authorization` 和 `Content-Type` 即可，`Authorization` 的值为 `Bearer <ninja 的 fk>`，`Content-Type` 的值为 `application/json`
 
 请求体格式示例：
 
@@ -317,7 +319,7 @@ services:
     ports:
       - "50013:3000"
     environment:
-      - OPENAI_API_KEY=<Pandora-Next 的 fk>
+      - OPENAI_API_KEY=<ninja 的 fk>
       - BASE_URL=<backend-to-api容器地址>
       - CUSTOM_MODELS=+gpt-4-s,+gpt-4-mobile,+<gpts.json 中的模型名>
 
@@ -354,21 +356,3 @@ services:
 #### 关闭 Bot 模式
 
 ![image](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/c1d3457f-b912-4572-b4e0-1118b48102d8)
-
-## 贡献者们
-
-> 感谢所有让这个项目变得更好的贡献者们！
-
-[![Contributors](https://contrib.rocks/image?repo=Ink-Osier/PandoraToV1Api)](https://github.com/Ink-Osier/PandoraToV1Api/graphs/contributors)
-
-## 平台推荐
-
-> [Cloudflare](https://www.cloudflare.com/)
-
-世界领先的互联网基础设施和安全公司，为您的网站提供 CDN、DNS、DDoS 保护和安全性服务，可以帮助你的项目尽可能避免遭受网络攻击或爬虫行为。
-[![Cloudflare](https://www.cloudflare.com/img/logo-cloudflare.svg)](https://www.cloudflare.com/)
-
-
-## Star 历史
-
-![Stargazers over time](https://api.star-history.com/svg?repos=Ink-Osier/PandoraToV1Api&type=Date)

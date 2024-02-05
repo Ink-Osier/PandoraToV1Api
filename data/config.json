@@ -24,6 +24,10 @@
         "enabled_bing_reference_output": "false",
         "enabled_plugin_output": "false"
     },
+    "refresh_ToAccess": {
+        "enableOai":"true",
+        "ninja_refreshToAccess_Url": ""
+    },
     "redis": {
         "host": "redis",
         "port": 6379,
