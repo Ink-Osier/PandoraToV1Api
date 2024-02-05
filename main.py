@@ -65,7 +65,7 @@ BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT = BOT_MODE.get('enabled_plain_image_url_
 REFRESH_TOACCESS = CONFIG.get('refresh_ToAccess', {})
 REFRESH_TOACCESS_ENABLEOAI = REFRESH_TOACCESS.get('enableOai', 'true').lower() == 'true'
 REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL = REFRESH_TOACCESS.get('ninja_refreshToAccess_Url', '')
-STEAM_SLEEP_TIME = REFRESH_TOACCESS.get('steam_sleep_time', '0.1')
+STEAM_SLEEP_TIME = REFRESH_TOACCESS.get('steam_sleep_time', 0)
 
 
 NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_after_response',
