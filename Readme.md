@@ -99,7 +99,7 @@
 
 - `backend_container_api_prefix`: 用于设置本项目 `/v1/xxx` 接口的前缀，如果留空则与官方api调用接口一致。设置示例：`666 `
 
-- `key_for_gpts_info`: 仅获取 GPTS 信息的 key，需要该 key 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 key，如果未配置该项，请将 `gpts.json` 文件修改为：
+- `key_for_gpts_info`: 填入refresh_token或者access_token, 仅获取 GPTS 信息的 refresh_token 转成的 access_token，需要该 refresh_token 转成的 access_token 能够访问所有配置的 GPTS。后续发送消息仍需要在请求头携带请求所用的 refresh_token 转成的 access_token，如果未配置该项，请将 `gpts.json` 文件修改为：
 
 ```json
 {}
