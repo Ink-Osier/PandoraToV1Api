@@ -12,6 +12,10 @@
 
 2. 将 ninja  `proxy` 模式下的 `backend-api` 转为 `/v1/images/generations` 接口
 
+3. 支持直接把refresh_token作为请求key，方便接入one_api
+
+4. 支持 gpt-4-mobile 、gpt-4-s 、基本所有的GPTS
+
 如果本项目对你有帮助的话，请点个小星星吧~
 
 如果有什么在项目的使用过程中的疑惑或需求，欢迎加入 Community Telegram Channel: [Inker 的魔法世界](https://t.me/InkerWorld) 来和大家一起交流一下~
@@ -328,6 +332,7 @@ services:
 ```
 
 ## 功能演示
+<details>
 
 ### 联网
 
@@ -358,3 +363,20 @@ services:
 #### 关闭 Bot 模式
 
 ![image](https://github.com/Ink-Osier/PandoraToV1Api/assets/133617214/c1d3457f-b912-4572-b4e0-1118b48102d8)
+
+</details>
+
+## 强调
+> [!caution]
+>
+> * 本项目只提供转发接口🥰
+> * 开源项目不易，请点个星星吧！！！
+
+### 新增群聊，点了⭐️可以进群讨论部署，我把你们拉进群，无广，广子踢掉
+<img src="https://github.com/Yanyutin753/PandoraNext-TokensTool/assets/132346501/6544e8ed-6673-48f9-95a6-c13255acbab1" width="300" height="300">
+
+### 请给我一个免费的⭐吧！！！
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Yanyutin753/ninjaToV1Api_refresh&type=Date)](https://star-history.com/#Yanyutin753/ninjaToV1Api_refresh&Date)
