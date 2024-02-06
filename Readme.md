@@ -321,7 +321,7 @@ services:
     ports:
       - "50013:3000"
     environment:
-      - OPENAI_API_KEY=<ninja 的 fk>
+      - OPENAI_API_KEY=<正确的refresh_token>
       - BASE_URL=<backend-to-api容器地址>
       - CUSTOM_MODELS=+gpt-4-s,+gpt-4-mobile,+<gpts.json 中的模型名>
 
