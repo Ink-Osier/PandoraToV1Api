@@ -821,6 +821,7 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
                 payload["arkose_token"] = token
                 # 在headers中添加新字段
                 headers["Openai-Sentinel-Arkose-Token"] = token
+        logger.debug(f"headers: {headers}")
         logger.debug(f"payload: {payload}")
         response = requests.post(url, headers=headers, json=payload, stream=True)
         # print(response)
