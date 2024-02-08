@@ -226,9 +226,9 @@ CORS(app, resources={r"/images/*": {"origins": "*"}})
 # PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.7.6'
+VERSION = '0.7.7'
 # VERSION = 'test'
-UPDATE_INFO = '支持proxy参数'
+UPDATE_INFO = '增加Arkose请求头'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 # 解析响应中的信息
@@ -819,6 +819,8 @@ def send_text_prompt_and_get_response(messages, api_key, stream, model):
             if CUSTOM_ARKOSE:
                 token = get_token()
                 payload["arkose_token"] = token
+                # 在headers中添加新字段
+                headers["Openai-Sentinel-Arkose-Token"] = token
         logger.debug(f"payload: {payload}")
         response = requests.post(url, headers=headers, json=payload, stream=True)
         # print(response)
