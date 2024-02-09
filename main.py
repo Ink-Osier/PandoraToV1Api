@@ -321,7 +321,7 @@ scheduler.start()
 
 VERSION = '0.7.7'
 # VERSION = 'test'
-# UPDATE_INFO = '增加Arkose请求头'
+UPDATE_INFO = '增加Arkose请求头'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 # 解析响应中的信息
