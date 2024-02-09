@@ -41,7 +41,7 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: |
-          wizerd/pandora-to-api:${{ steps.tag_name.outputs.tag }}
-          wizerd/pandora-to-api:latest
+          yangclivia/pandora-to-api:${{ steps.tag_name.outputs.tag }}
+          yangclivia/pandora-to-api:latest
         platforms: linux/amd64,linux/arm64
         build-args: TARGETPLATFORM=${{ matrix.platform }}
