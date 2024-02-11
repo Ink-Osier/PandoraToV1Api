@@ -4,7 +4,7 @@
     "process_workers": 2,
     "process_threads": 2,
     "proxy": "",
-    "upstream_base_url": "",
+    "upstream_base_url": "https://demo.xyhelper.cn",
     "upstream_api_prefix": "",
     "backend_container_url": "",
     "backend_container_api_prefix": "",
