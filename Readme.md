@@ -147,7 +147,8 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
   
     - `enableOai`:用于设置是否使用官网通过refresh_token刷新access_token，仅在 `enableOai` 为 `true` 时生效。
       
-    - `xyhelper_refreshToAccess_Url`:用于设置使用xyhelper来进行使用refresh_token刷新access_token,enableOai为false的时候必填(默认为"")。
+    - `xyhelper_refreshToAccess_Url`:用于设置使用xyhelper来进行使用refresh_token刷新access_token,enableOai为false的时候必填
+        - 默认为"https://demo.xyhelper.cn/applelogin"
 
 - `redis`
 
