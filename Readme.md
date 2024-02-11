@@ -19,6 +19,10 @@
 * **xyhelper 的 免费 backend-api 接口，无需打码**
 
 * **xyhelper接口每分钟最多请求30次，介意请绕行**
+    * 我是开发者,我想自行修改功能->前往源码库 https://github.com/xyhelper/chatgpt-mirror-server
+    * 我没服务器,也没有官网账号,只想使用->前往官网购买我们运营的会员服务 https://www.xyhelper.com.cn
+    * 我想做商业用途,我想自己运营->老板里面请 https://www.xyhelper.com.cn/access
+    * 我有服务器,我想自己部署->请继续阅读本文档(有条件的话给个star吧)
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
