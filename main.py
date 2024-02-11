@@ -61,7 +61,7 @@ BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT = BOT_MODE.get('enabled_plugin_output', 'fals
 
 BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT = BOT_MODE.get('enabled_plain_image_url_output', 'false').lower() == 'true'
 
-# ninjaToV1Api_refresh
+# xyhelperToV1Api_refresh
 REFRESH_TOACCESS = CONFIG.get('refresh_ToAccess', {})
 REFRESH_TOACCESS_ENABLEOAI = REFRESH_TOACCESS.get('enableOai', 'true').lower() == 'true'
 REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL = REFRESH_TOACCESS.get('xyhelper_refreshToAccess_Url', '')
@@ -411,7 +411,7 @@ with app.app_context():
         logger.info(f"enabled_bing_reference_output: {BOT_MODE_ENABLED_BING_REFERENCE_OUTPUT}")
         logger.info(f"enabled_plugin_output: {BOT_MODE_ENABLED_CODE_BLOCK_OUTPUT}")
 
-    # ninjaToV1Api_refresh
+    # xyhelperToV1Api_refresh
 
     logger.info(f"REFRESH_TOACCESS_ENABLEOAI: {REFRESH_TOACCESS_ENABLEOAI}")
     logger.info(f"REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL: {REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL}")
