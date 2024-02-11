@@ -16,7 +16,9 @@
 
 4. 支持 gpt-4-mobile 、gpt-4-s 、基本所有的GPTS
 
-* xyhelper 的 免费 backend-api 接口，无需打码
+* **xyhelper 的 免费 backend-api 接口，无需打码**
+
+* **xyhelper接口每分钟最多请求30次，介意请绕行**
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
