@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 >
-> Respect ninja大佬 , Respect Wizerd！
+> Respect ninja , Respect Wizerd！
 
 感谢ninja和Wizerd的付出，敬礼！！！
 
