@@ -64,7 +64,7 @@ BOT_MODE_ENABLED_PLAIN_IMAGE_URL_OUTPUT = BOT_MODE.get('enabled_plain_image_url_
 # ninjaToV1Api_refresh
 REFRESH_TOACCESS = CONFIG.get('refresh_ToAccess', {})
 REFRESH_TOACCESS_ENABLEOAI = REFRESH_TOACCESS.get('enableOai', 'true').lower() == 'true'
-REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL = REFRESH_TOACCESS.get('ninja_refreshToAccess_Url', '')
+REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL = REFRESH_TOACCESS.get('xyhelper_refreshToAccess_Url', '')
 STEAM_SLEEP_TIME = REFRESH_TOACCESS.get('steam_sleep_time', 0)
 
 NEED_DELETE_CONVERSATION_AFTER_RESPONSE = CONFIG.get('need_delete_conversation_after_response',
@@ -197,12 +197,15 @@ def oaiGetAccessToken(refresh_token):
     return None
 
 
-# ninja获得access_token
-def ninjaGetAccessToken(refresh_token, getAccessTokenUrl):
+# xyhelper获得access_token
+def xyhelperGetAccessToken(refresh_token, getAccessTokenUrl):
     try:
         logger.info("将通过这个网址请求access_token：" + getAccessTokenUrl)
-        headers = {"Authorization": "Bearer " + refresh_token}
-        response = requests.post(getAccessTokenUrl, headers=headers)
+        
+        data = {
+            'refresh_token': refresh_token,
+        }
+        response = requests.post(getAccessTokenUrl, data=data)
         if not response.ok:
             logger.error("Request 失败: " + response.text.strip())
             return None
@@ -225,7 +228,7 @@ def updateGptsKey():
         if REFRESH_TOACCESS_ENABLEOAI:
             access_token = oaiGetAccessToken(KEY_FOR_GPTS_INFO)
         else:
-            access_token = ninjaGetAccessToken(REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL, KEY_FOR_GPTS_INFO)
+            access_token = xyhelperGetAccessToken(REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL, KEY_FOR_GPTS_INFO)
         if access_token.startswith("eyJhb"):
             KEY_FOR_GPTS_INFO = access_token
             logging.info("KEY_FOR_GPTS_INFO被更新:" + KEY_FOR_GPTS_INFO)
@@ -400,7 +403,7 @@ with app.app_context():
 
     logger.info(f"REFRESH_TOACCESS_ENABLEOAI: {REFRESH_TOACCESS_ENABLEOAI}")
     if not REFRESH_TOACCESS_ENABLEOAI:
-        logger.info(f"REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL: {REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL}")
+        logger.info(f"REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL: {REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL}")
 
     if BOT_MODE_ENABLED:
         logger.info(f"enabled_markdown_image_output: {BOT_MODE_ENABLED_MARKDOWN_IMAGE_OUTPUT}")
@@ -411,7 +414,7 @@ with app.app_context():
     # ninjaToV1Api_refresh
 
     logger.info(f"REFRESH_TOACCESS_ENABLEOAI: {REFRESH_TOACCESS_ENABLEOAI}")
-    logger.info(f"REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL: {REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL}")
+    logger.info(f"REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL: {REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL}")
     logger.info(f"STEAM_SLEEP_TIME: {STEAM_SLEEP_TIME}")
 
     if not BASE_URL:
@@ -2261,7 +2264,7 @@ def chat_completions():
                 refresh_token = api_key
                 api_key = oaiGetAccessToken(api_key)
             else:
-                api_key = ninjaGetAccessToken(REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL, api_key)
+                api_key = xyhelperGetAccessToken(REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL, api_key)
             if not api_key.startswith("eyJhb"):
                 return jsonify({"error": "refresh_token is wrong or refresh_token url is wrong!"}), 401
             add_to_dict(refresh_token, api_key)
@@ -2426,7 +2429,7 @@ def images_generations():
                 refresh_token = api_key
                 api_key = oaiGetAccessToken(api_key)
             else:
-                api_key = ninjaGetAccessToken(REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL, api_key)
+                api_key = xyhelperGetAccessToken(REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL, api_key)
             if not api_key.startswith("eyJhb"):
                 return jsonify({"error": "refresh_token is wrong or refresh_token url is wrong!"}), 401
             add_to_dict(refresh_token, api_key)
@@ -2606,7 +2609,7 @@ def updateRefresh_dict():
             refresh_token = key
             access_token = oaiGetAccessToken(key)
         else:
-            access_token = ninjaGetAccessToken(REFRESH_TOACCESS_NINJA_REFRESHTOACCESS_URL, key)
+            access_token = xyhelperGetAccessToken(REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL, key)
         if not access_token.startswith("eyJhb"):
             logger.debug("refresh_token is wrong or refresh_token url is wrong!")
             error_num += 1
