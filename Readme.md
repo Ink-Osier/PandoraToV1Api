@@ -69,7 +69,7 @@
 > [!CAUTION]
 > 1. 本项目的运行需要 xyhelper 的免费接口
 >
-> 2. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到ninja的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
+> 2. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到xyhelper免费接口的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
 >
 > 3. 本项目支持使用apple平台的refresh_token作为请求key. 
 >
