@@ -27,7 +27,7 @@
     "refresh_ToAccess": {
         "stream_sleep_time": 0,
         "enableOai":"true",
-        "ninja_refreshToAccess_Url": ""
+        "xyhelper_refreshToAccess_Url": "https://demo.xyhelper.cn/applelogin"
     },
     "redis": {
         "host": "redis",
