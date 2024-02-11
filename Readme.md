@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 >
-> Respect ninja , Respect Wizerd！
+> Respect `xyhelper` ,Respect `ninja` , Respect `Wizerd`！
 
 感谢ninja和Wizerd的付出，敬礼！！！
 
