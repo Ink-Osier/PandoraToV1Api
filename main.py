@@ -198,7 +198,7 @@ def oaiGetAccessToken(refresh_token):
 
 
 # xyhelper获得access_token
-def xyhelperGetAccessToken(getAccessTokenUrl,refresh_token):
+def xyhelperGetAccessToken(getAccessTokenUrl, refresh_token):
     try:
         logger.info("将通过这个网址请求access_token：" + getAccessTokenUrl)
         
@@ -2260,8 +2260,8 @@ def chat_completions():
             logger.info(f"从缓存读取到api_key.........。")
             api_key = refresh_dict.get(api_key)
         else:
+            refresh_token = api_key
             if REFRESH_TOACCESS_ENABLEOAI:
-                refresh_token = api_key
                 api_key = oaiGetAccessToken(api_key)
             else:
                 api_key = xyhelperGetAccessToken(REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL, api_key)
