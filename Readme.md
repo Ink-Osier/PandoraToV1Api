@@ -2,21 +2,21 @@
 
 > [!IMPORTANT]
 >
-> Respect Zhile大佬 , Respect Wizerd！
+> Respect ninja大佬 , Respect Wizerd！
 
-感谢pandoraNext和Wizerd的付出，敬礼！！！
+感谢ninja和Wizerd的付出，敬礼！！！
 
 本项目支持：
 
-1. 将 ninja  `proxy` 模式下的 `backend-api` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应。
+1. 将 xyhelper  `proxy` 模式下的 `backend-api免费接口` 转为 `/v1/chat/completions` 接口，支持流式和非流式响应。
 
-2. 将 ninja  `proxy` 模式下的 `backend-api` 转为 `/v1/images/generations` 接口
+2. 将 xyhelper  `proxy` 模式下的 `backend-api免费接口` 转为 `/v1/images/generations` 接口
 
 3. 支持直接把refresh_token作为请求key，方便接入one_api
 
 4. 支持 gpt-4-mobile 、gpt-4-s 、基本所有的GPTS
 
-如果你想要尝试自己生成Arkose Token，你可以看看这个项目：[GenerateArkose](https://github.com/Ink-Osier/GenerateArkose)，但是请注意，**该项目并不保证使用该项目生成的Arkose Token不会封号，使用该项目造成的一切后果由使用者自行承担**。
+* xyhelper 的 免费 backend-api 接口，无需打码
 
 如果本项目对你有帮助的话，请点个小星星吧~
 
@@ -61,13 +61,13 @@
 ## 注意
 
 > [!CAUTION]
-> 1. 本项目的运行需要 ninja 
+> 1. 本项目的运行需要 xyhelper 的免费接口
 >
 > 2. 本项目实际为将来自 `/v1/chat/completions` 的请求转发到ninja的 `/backend-api/conversation` 接口，因此本项目并不支持高并发操作，请不要接入如 `沉浸式翻译` 等高并发项目。
 >
 > 3. 本项目支持使用apple平台的refresh_token作为请求key. 
 >
-> 4. 本项目并不能绕过 OpenAI 和 ninja 官方的限制，只提供便利，不提供绕过。
+> 4. 本项目并不能绕过 OpenAI 和 xyhelper 官方的限制，只提供便利，不提供绕过。
 >
 > 5. 提问的艺术：当出现项目不能正常运行时，请携带 `DEBUG` 级别的日志在 `Issue` 或者社区群内提问，否则将开启算命模式~
 
@@ -97,9 +97,9 @@
 
 - `process_threads`: 用于设置线程数，如果不需要设置，可以保持不变，如果需要设置，可以设置为需要设置的值，如果设置为 `1`，则会强制设置为单线程模式。
 
-- `upstream_base_url`: ninja 的部署地址，如：`https://pandoranext.com`，注意：不要以 `/` 结尾。可以填写为本项目可以访问到的 PandoraNext 的内网地址。
+- `upstream_base_url`: xyhelper 的免费接口地址，如：`https://demo.xyhelper.cn`，注意：不要以 `/` 结尾。
 
-- `upstream_api_prefix`: PandoraNext Proxy 模式下的 API 前缀
+- `upstream_api_prefix`: 默认为""
 
 - `backend_container_url`: 用于dalle模型生成图片的时候展示所用，需要设置为使用如 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWebTeam/ChatGPT-Next-Web) 的用户可以访问到的本项目地址，如：`http://1.2.3.4:50011`，同原环境变量中的 `UPLOAD_BASE_URL`
 
@@ -145,7 +145,7 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
   
     - `enableOai`:用于设置是否使用官网通过refresh_token刷新access_token，仅在 `enableOai` 为 `true` 时生效。
       
-    - `ninja_refreshToAccess_Url`:用于设置使用ninja来进行使用refresh_token刷新access_token,enableOai为false的时候必填。
+    - `ninja_refreshToAccess_Url`:用于设置使用ninja来进行使用refresh_token刷新access_token,enableOai为false的时候必填(默认为"")。
 
 - `redis`
 
