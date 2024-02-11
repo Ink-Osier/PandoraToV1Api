@@ -147,7 +147,7 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
   
     - `enableOai`:用于设置是否使用官网通过refresh_token刷新access_token，仅在 `enableOai` 为 `true` 时生效。
       
-    - `ninja_refreshToAccess_Url`:用于设置使用ninja来进行使用refresh_token刷新access_token,enableOai为false的时候必填(默认为"")。
+    - `xyhelper_refreshToAccess_Url`:用于设置使用xyhelper来进行使用refresh_token刷新access_token,enableOai为false的时候必填(默认为"")。
 
 - `redis`
 
@@ -186,7 +186,7 @@ PS. 注意，arkose_urls中的地址需要支持PandoraNext的Arkose Token获取
 
 请求方式：`POST`
 
-请求头：正常携带 `Authorization` 和 `Content-Type` 即可，`Authorization` 的值为 `Bearer <ninja 的 fk>`，`Content-Type` 的值为 `application/json`
+请求头：正常携带 `Authorization` 和 `Content-Type` 即可，`Authorization` 的值为 `Bearer <refresh_token>`，`Content-Type` 的值为 `application/json`
 
 请求体格式示例：
 
@@ -383,4 +383,4 @@ services:
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Yanyutin753/ninjaToV1Api_refresh&type=Date)](https://star-history.com/#Yanyutin753/ninjaToV1Api_refresh&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Yanyutin753/xyhelperV1Api_refresh&type=Date)](https://star-history.com/#Yanyutin753/xyhelperV1Api_refresh&Date)
