@@ -198,7 +198,7 @@ def oaiGetAccessToken(refresh_token):
 
 
 # xyhelper获得access_token
-def xyhelperGetAccessToken(refresh_token, getAccessTokenUrl):
+def xyhelperGetAccessToken(getAccessTokenUrl,refresh_token):
     try:
         logger.info("将通过这个网址请求access_token：" + getAccessTokenUrl)
         
@@ -322,9 +322,9 @@ scheduler.start()
 # PANDORA_UPLOAD_URL = 'files.pandoranext.com'
 
 
-VERSION = '0.7.7'
+VERSION = '0.7.8'
 # VERSION = 'test'
-UPDATE_INFO = '增加Arkose请求头'
+UPDATE_INFO = '项目将脱离ninja，使用xyhelper，xyhelper_refreshToAccess_Url等配置需修改'
 # UPDATE_INFO = '【仅供临时测试使用】 '
 
 # 解析响应中的信息
