@@ -4,7 +4,7 @@
 >
 > Respect `xyhelper` ,Respect `ninja` , Respect `Wizerd`！
 
-感谢ninja和Wizerd的付出，敬礼！！！
+感谢xyhelper、ninja和Wizerd大佬们的付出，敬礼！！！
 
 本项目支持：
 
