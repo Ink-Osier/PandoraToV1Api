@@ -2605,8 +2605,8 @@ def updateRefresh_dict():
     logger.info(f"==========================================")
     logging.info("开始更新access_token.........")
     for key in refresh_dict:
+        refresh_token = key
         if REFRESH_TOACCESS_ENABLEOAI:
-            refresh_token = key
             access_token = oaiGetAccessToken(key)
         else:
             access_token = xyhelperGetAccessToken(REFRESH_TOACCESS_XYHELPER_REFRESHTOACCESS_URL, key)
